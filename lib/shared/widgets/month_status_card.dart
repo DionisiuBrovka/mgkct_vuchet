@@ -19,8 +19,10 @@ class MonthStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Card.filled(
       child: ListTile(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadiusGeometry.circular(12)),
         title: Text('$month $year',
             style: const TextStyle(fontWeight: FontWeight.w600)),
         trailing: StatusBadge(status),

@@ -35,13 +35,24 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 
   Future<void> _loadStatuses() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final statuses = await VychitkaCubit(getIt())
           .loadAllMonthStatuses(_teacher, _academicYear);
-      if (mounted) setState(() { _statuses = statuses; _loading = false; });
+      if (mounted)
+        setState(() {
+          _statuses = statuses;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -55,7 +66,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             Text(_teacher, overflow: TextOverflow.ellipsis),
             Text(
               'Учебный год $_academicYear/${_academicYear + 1}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              style:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),
           ],
         ),
@@ -67,42 +79,60 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      TextButton(
-                        onPressed: _loadStatuses,
-                        child: const Text('Повторить'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadStatuses,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: AppConstants.months.length,
-                    itemBuilder: (_, i) {
-                      final month = AppConstants.months[i];
-                      final year = AppConstants.yearForMonth(month, _academicYear);
-                      final status = _statuses?[month] ?? VychitkaStatus.draft;
-                      return MonthStatusCard(
-                        month: month,
-                        year: year,
-                        status: status,
-                        onTap: () async {
-                          await context.push('/teacher/fill/$month/$year');
-                          _loadStatuses();
-                        },
-                      );
-                    },
-                  ),
-                ),
+      body: Stack(fit: StackFit.expand, children: [
+        Image.asset(
+          'assets/images/back.png',
+          fit: BoxFit.cover,
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Card(
+              elevation: 6,
+              child: SizedBox(
+                width: 800,
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_error!),
+                              TextButton(
+                                onPressed: _loadStatuses,
+                                child: const Text('Повторить'),
+                              ),
+                            ],
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadStatuses,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: AppConstants.months.length,
+                              itemBuilder: (_, i) {
+                                final month = AppConstants.months[i];
+                                final year = AppConstants.yearForMonth(
+                                    month, _academicYear);
+                                final status =
+                                    _statuses?[month] ?? VychitkaStatus.draft;
+                                return MonthStatusCard(
+                                  month: month,
+                                  year: year,
+                                  status: status,
+                                  onTap: () async {
+                                    await context
+                                        .push('/teacher/fill/$month/$year');
+                                    _loadStatuses();
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+              ),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }
