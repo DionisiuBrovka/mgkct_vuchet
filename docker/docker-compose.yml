@@ -13,6 +13,10 @@ services:
     volumes:
       # именованный том для базы и файлов PocketBase (переживает пересоздание контейнера)
       - mgkct_data:/pb/pb_data
+    environment:
+      # пароль суперюзера (для входа в /_/), задаётся при первом запуске
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-admin123456}
+      PB_SUPERUSER_EMAIL: ${PB_SUPERUSER_EMAIL:-admin@mgkct.local}
 
 volumes:
   mgkct_data:
