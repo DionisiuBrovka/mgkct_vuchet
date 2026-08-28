@@ -16,6 +16,7 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$Zamena {
+  String get id => throw _privateConstructorUsedError;
   String get teacher => throw _privateConstructorUsedError;
   String get month => throw _privateConstructorUsedError;
   int get year => throw _privateConstructorUsedError;
@@ -35,7 +36,8 @@ abstract class $ZamenaCopyWith<$Res> {
       _$ZamenaCopyWithImpl<$Res, Zamena>;
   @useResult
   $Res call(
-      {String teacher,
+      {String id,
+      String teacher,
       String month,
       int year,
       String group,
@@ -58,6 +60,7 @@ class _$ZamenaCopyWithImpl<$Res, $Val extends Zamena>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? id = null,
     Object? teacher = null,
     Object? month = null,
     Object? year = null,
@@ -66,6 +69,10 @@ class _$ZamenaCopyWithImpl<$Res, $Val extends Zamena>
     Object? hours = null,
   }) {
     return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
       teacher: null == teacher
           ? _value.teacher
           : teacher // ignore: cast_nullable_to_non_nullable
@@ -102,7 +109,8 @@ abstract class _$$ZamenaImplCopyWith<$Res> implements $ZamenaCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {String teacher,
+      {String id,
+      String teacher,
       String month,
       int year,
       String group,
@@ -123,6 +131,7 @@ class __$$ZamenaImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? id = null,
     Object? teacher = null,
     Object? month = null,
     Object? year = null,
@@ -131,6 +140,10 @@ class __$$ZamenaImplCopyWithImpl<$Res>
     Object? hours = null,
   }) {
     return _then(_$ZamenaImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
       teacher: null == teacher
           ? _value.teacher
           : teacher // ignore: cast_nullable_to_non_nullable
@@ -163,13 +176,17 @@ class __$$ZamenaImplCopyWithImpl<$Res>
 
 class _$ZamenaImpl implements _Zamena {
   const _$ZamenaImpl(
-      {required this.teacher,
+      {this.id = '',
+      required this.teacher,
       required this.month,
       required this.year,
       required this.group,
       required this.date,
       required this.hours});
 
+  @override
+  @JsonKey()
+  final String id;
   @override
   final String teacher;
   @override
@@ -185,7 +202,7 @@ class _$ZamenaImpl implements _Zamena {
 
   @override
   String toString() {
-    return 'Zamena(teacher: $teacher, month: $month, year: $year, group: $group, date: $date, hours: $hours)';
+    return 'Zamena(id: $id, teacher: $teacher, month: $month, year: $year, group: $group, date: $date, hours: $hours)';
   }
 
   @override
@@ -193,6 +210,7 @@ class _$ZamenaImpl implements _Zamena {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$ZamenaImpl &&
+            (identical(other.id, id) || other.id == id) &&
             (identical(other.teacher, teacher) || other.teacher == teacher) &&
             (identical(other.month, month) || other.month == month) &&
             (identical(other.year, year) || other.year == year) &&
@@ -203,7 +221,7 @@ class _$ZamenaImpl implements _Zamena {
 
   @override
   int get hashCode =>
-      Object.hash(runtimeType, teacher, month, year, group, date, hours);
+      Object.hash(runtimeType, id, teacher, month, year, group, date, hours);
 
   /// Create a copy of Zamena
   /// with the given fields replaced by the non-null parameter values.
@@ -216,13 +234,16 @@ class _$ZamenaImpl implements _Zamena {
 
 abstract class _Zamena implements Zamena {
   const factory _Zamena(
-      {required final String teacher,
+      {final String id,
+      required final String teacher,
       required final String month,
       required final int year,
       required final String group,
       required final String date,
       required final double hours}) = _$ZamenaImpl;
 
+  @override
+  String get id;
   @override
   String get teacher;
   @override

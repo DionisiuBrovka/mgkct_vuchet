@@ -1,12 +1,15 @@
 class AppConstants {
   AppConstants._();
 
-  static const spreadsheetId = '1OLuPL03HvBh1Sa7gSx4glPT60eZ6OXnCH1R46sKrhUo';
+  // PocketBase
+  static const pocketBaseUrl = 'http://127.0.0.1:8090';
 
-  static const sheetUsers = 'Пользователи';
-  static const sheetAssign = 'Назначения';
-  static const sheetVychitki = 'Вычитки';
-  static const sheetZameny = 'Замены';
+  // Коллекции PocketBase
+  static const usersColl = 'users';
+  static const profilesColl = 'user_profiles';
+  static const assignmentsColl = 'assignments';
+  static const vychitkiColl = 'vychitki';
+  static const zamenyColl = 'zameny';
 
   // Учебный год: сентябрь–июль (11 месяцев)
   static const months = [

@@ -16,8 +16,9 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$AppUser {
+  String get id => throw _privateConstructorUsedError;
+  String get profileId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  String get password => throw _privateConstructorUsedError;
   UserRole get role => throw _privateConstructorUsedError;
 
   /// Create a copy of AppUser
@@ -31,7 +32,7 @@ abstract class $AppUserCopyWith<$Res> {
   factory $AppUserCopyWith(AppUser value, $Res Function(AppUser) then) =
       _$AppUserCopyWithImpl<$Res, AppUser>;
   @useResult
-  $Res call({String name, String password, UserRole role});
+  $Res call({String id, String profileId, String name, UserRole role});
 }
 
 /// @nodoc
@@ -49,18 +50,23 @@ class _$AppUserCopyWithImpl<$Res, $Val extends AppUser>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? id = null,
+    Object? profileId = null,
     Object? name = null,
-    Object? password = null,
     Object? role = null,
   }) {
     return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      profileId: null == profileId
+          ? _value.profileId
+          : profileId // ignore: cast_nullable_to_non_nullable
+              as String,
       name: null == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      password: null == password
-          ? _value.password
-          : password // ignore: cast_nullable_to_non_nullable
               as String,
       role: null == role
           ? _value.role
@@ -77,7 +83,7 @@ abstract class _$$AppUserImplCopyWith<$Res> implements $AppUserCopyWith<$Res> {
       __$$AppUserImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String name, String password, UserRole role});
+  $Res call({String id, String profileId, String name, UserRole role});
 }
 
 /// @nodoc
@@ -93,18 +99,23 @@ class __$$AppUserImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? id = null,
+    Object? profileId = null,
     Object? name = null,
-    Object? password = null,
     Object? role = null,
   }) {
     return _then(_$AppUserImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      profileId: null == profileId
+          ? _value.profileId
+          : profileId // ignore: cast_nullable_to_non_nullable
+              as String,
       name: null == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      password: null == password
-          ? _value.password
-          : password // ignore: cast_nullable_to_non_nullable
               as String,
       role: null == role
           ? _value.role
@@ -118,18 +129,23 @@ class __$$AppUserImplCopyWithImpl<$Res>
 
 class _$AppUserImpl implements _AppUser {
   const _$AppUserImpl(
-      {required this.name, required this.password, required this.role});
+      {required this.id,
+      required this.profileId,
+      required this.name,
+      required this.role});
 
   @override
-  final String name;
+  final String id;
   @override
-  final String password;
+  final String profileId;
+  @override
+  final String name;
   @override
   final UserRole role;
 
   @override
   String toString() {
-    return 'AppUser(name: $name, password: $password, role: $role)';
+    return 'AppUser(id: $id, profileId: $profileId, name: $name, role: $role)';
   }
 
   @override
@@ -137,14 +153,15 @@ class _$AppUserImpl implements _AppUser {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$AppUserImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.profileId, profileId) ||
+                other.profileId == profileId) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.password, password) ||
-                other.password == password) &&
             (identical(other.role, role) || other.role == role));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, name, password, role);
+  int get hashCode => Object.hash(runtimeType, id, profileId, name, role);
 
   /// Create a copy of AppUser
   /// with the given fields replaced by the non-null parameter values.
@@ -157,14 +174,17 @@ class _$AppUserImpl implements _AppUser {
 
 abstract class _AppUser implements AppUser {
   const factory _AppUser(
-      {required final String name,
-      required final String password,
+      {required final String id,
+      required final String profileId,
+      required final String name,
       required final UserRole role}) = _$AppUserImpl;
 
   @override
-  String get name;
+  String get id;
   @override
-  String get password;
+  String get profileId;
+  @override
+  String get name;
   @override
   UserRole get role;
 

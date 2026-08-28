@@ -23,6 +23,14 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
+# PocketBase
+tools/pocketbase/pocketbase
+tools/pocketbase/pb_data/
+tools/pocketbase/pb_public/
+
+# Google service account key (must never be committed)
+assets/service_account.json
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id

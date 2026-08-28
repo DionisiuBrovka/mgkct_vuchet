@@ -1,24 +1,16 @@
-import '../../../core/sheets_service.dart';
+import '../../../core/pocket_base_service.dart';
 import '../models/app_user.dart';
 
 class AuthRepository {
-  AuthRepository(this._sheets);
+  AuthRepository(this._pb);
 
-  final SheetsService _sheets;
+  final PocketBaseService _pb;
 
-  Future<AppUser?> login(String name, String password) async {
-    final users = await _sheets.getUsers();
-    try {
-      return users.firstWhere(
-        (u) => u.name == name && u.password == password,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
+  Future<AppUser?> login(String name, String password) =>
+      _pb.login(name, password);
 
   Future<List<String>> getTeacherNames() async {
-    final users = await _sheets.getUsers();
+    final users = await _pb.getAllUsers();
     return users.map((u) => u.name).toList();
   }
 }

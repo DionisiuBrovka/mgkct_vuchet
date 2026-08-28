@@ -10,9 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Google API
-  googleapis: ^13.0.0
-  googleapis_auth: ^1.6.0
+  # PocketBase backend
+  pocketbase: ^0.25.0
   http: ^1.2.0
 
   # State management
@@ -42,5 +41,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/service_account.json
     - assets/images/back.png

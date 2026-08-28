@@ -1,15 +1,15 @@
-import '../../../core/sheets_service.dart';
+import '../../../core/pocket_base_service.dart';
 import '../models/assignment.dart';
 import '../models/vychitka_entry.dart';
 import '../models/zamena.dart';
 
 class VychitkaRepository {
-  VychitkaRepository(this._sheets);
+  VychitkaRepository(this._pb);
 
-  final SheetsService _sheets;
+  final PocketBaseService _pb;
 
   Future<List<Assignment>> getAssignments(String teacher, int year) =>
-      _sheets.getAssignments(teacher, year);
+      _pb.getAssignments(teacher, year);
 
   Future<VychitkaStatus> getMonthStatus(
     String teacher,
@@ -17,9 +17,8 @@ class VychitkaRepository {
     int year,
   ) async {
     final entries =
-        await _sheets.getVychitki(teacher: teacher, month: month, year: year);
+        await _pb.getVychitki(teacher: teacher, month: month, year: year);
     if (entries.isEmpty) return VychitkaStatus.draft;
-    // All entries in a month share the same status — use first
     return entries.first.status;
   }
 
@@ -28,16 +27,13 @@ class VychitkaRepository {
     String month,
     int year,
   ) =>
-      _sheets.getVychitki(teacher: teacher, month: month, year: year);
+      _pb.getVychitki(teacher: teacher, month: month, year: year);
 
-  Future<void> saveOrUpdateEntries(List<VychitkaEntry> entries) async {
-    for (final e in entries) {
-      await _sheets.updateEntry(e);
-    }
-  }
+  Future<void> saveOrUpdateEntries(List<VychitkaEntry> entries) =>
+      _pb.saveEntries(entries);
 
   Future<void> submitMonth(String teacher, String month, int year) =>
-      _sheets.submitMonth(teacher, month, year);
+      _pb.submitMonth(teacher, month, year);
 
   Future<void> confirmMonth(
     String teacher,
@@ -45,15 +41,15 @@ class VychitkaRepository {
     int year,
     String confirmedBy,
   ) =>
-      _sheets.confirmMonth(teacher, month, year, confirmedBy);
+      _pb.confirmMonth(teacher, month, year, confirmedBy);
 
   Future<void> rejectMonth(String teacher, String month, int year) =>
-      _sheets.rejectMonth(teacher, month, year);
+      _pb.rejectMonth(teacher, month, year);
 
   Future<List<Zamena>> getZameny(String teacher, String month, int year) =>
-      _sheets.getZameny(teacher, month, year);
+      _pb.getZameny(teacher, month, year);
 
-  Future<void> saveZamena(Zamena z) => _sheets.saveZamena(z);
+  Future<void> saveZamena(Zamena z) => _pb.saveZamena(z);
 
   Future<void> deleteZamena(
     String teacher,
@@ -61,10 +57,10 @@ class VychitkaRepository {
     int year,
     String date,
   ) =>
-      _sheets.deleteZamena(teacher, month, year, date);
+      _pb.deleteZamena(teacher, month, year, date);
 
   Future<List<String>> getAllTeacherNames() async {
-    final users = await _sheets.getUsers();
+    final users = await _pb.getAllUsers();
     return users.map((u) => u.name).toList();
   }
 
@@ -72,12 +68,11 @@ class VychitkaRepository {
     String month,
     int year,
   ) async {
-    final entries =
-        await _sheets.getVychitki(month: month, year: year);
+    final entries = await _pb.getVychitki(month: month, year: year);
     final map = <String, VychitkaStatus>{};
     for (final e in entries) {
-      // Keep the "highest" status if duplicates
       final existing = map[e.teacher];
+      if (e.teacher.isEmpty) continue;
       if (existing == null ||
           e.status.index > existing.index) {
         map[e.teacher] = e.status;

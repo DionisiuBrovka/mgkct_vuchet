@@ -22,6 +22,7 @@ mixin _$VychitkaEntry {
   int get year => throw _privateConstructorUsedError;
   String get subject => throw _privateConstructorUsedError;
   String get group => throw _privateConstructorUsedError;
+  String get assignmentId => throw _privateConstructorUsedError;
   double get lek => throw _privateConstructorUsedError;
   double get lrPr => throw _privateConstructorUsedError;
   double get kp => throw _privateConstructorUsedError;
@@ -53,6 +54,7 @@ abstract class $VychitkaEntryCopyWith<$Res> {
       int year,
       String subject,
       String group,
+      String assignmentId,
       double lek,
       double lrPr,
       double kp,
@@ -86,6 +88,7 @@ class _$VychitkaEntryCopyWithImpl<$Res, $Val extends VychitkaEntry>
     Object? year = null,
     Object? subject = null,
     Object? group = null,
+    Object? assignmentId = null,
     Object? lek = null,
     Object? lrPr = null,
     Object? kp = null,
@@ -121,6 +124,10 @@ class _$VychitkaEntryCopyWithImpl<$Res, $Val extends VychitkaEntry>
       group: null == group
           ? _value.group
           : group // ignore: cast_nullable_to_non_nullable
+              as String,
+      assignmentId: null == assignmentId
+          ? _value.assignmentId
+          : assignmentId // ignore: cast_nullable_to_non_nullable
               as String,
       lek: null == lek
           ? _value.lek
@@ -181,6 +188,7 @@ abstract class _$$VychitkaEntryImplCopyWith<$Res>
       int year,
       String subject,
       String group,
+      String assignmentId,
       double lek,
       double lrPr,
       double kp,
@@ -212,6 +220,7 @@ class __$$VychitkaEntryImplCopyWithImpl<$Res>
     Object? year = null,
     Object? subject = null,
     Object? group = null,
+    Object? assignmentId = null,
     Object? lek = null,
     Object? lrPr = null,
     Object? kp = null,
@@ -247,6 +256,10 @@ class __$$VychitkaEntryImplCopyWithImpl<$Res>
       group: null == group
           ? _value.group
           : group // ignore: cast_nullable_to_non_nullable
+              as String,
+      assignmentId: null == assignmentId
+          ? _value.assignmentId
+          : assignmentId // ignore: cast_nullable_to_non_nullable
               as String,
       lek: null == lek
           ? _value.lek
@@ -302,6 +315,7 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
       required this.year,
       required this.subject,
       required this.group,
+      this.assignmentId = '',
       this.lek = 0,
       this.lrPr = 0,
       this.kp = 0,
@@ -326,6 +340,9 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
   final String subject;
   @override
   final String group;
+  @override
+  @JsonKey()
+  final String assignmentId;
   @override
   @JsonKey()
   final double lek;
@@ -356,7 +373,7 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
 
   @override
   String toString() {
-    return 'VychitkaEntry(id: $id, teacher: $teacher, month: $month, year: $year, subject: $subject, group: $group, lek: $lek, lrPr: $lrPr, kp: $kp, cons: $cons, dopKontr: $dopKontr, ekz: $ekz, status: $status, submittedAt: $submittedAt, confirmedAt: $confirmedAt, confirmedBy: $confirmedBy)';
+    return 'VychitkaEntry(id: $id, teacher: $teacher, month: $month, year: $year, subject: $subject, group: $group, assignmentId: $assignmentId, lek: $lek, lrPr: $lrPr, kp: $kp, cons: $cons, dopKontr: $dopKontr, ekz: $ekz, status: $status, submittedAt: $submittedAt, confirmedAt: $confirmedAt, confirmedBy: $confirmedBy)';
   }
 
   @override
@@ -370,6 +387,8 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
             (identical(other.year, year) || other.year == year) &&
             (identical(other.subject, subject) || other.subject == subject) &&
             (identical(other.group, group) || other.group == group) &&
+            (identical(other.assignmentId, assignmentId) ||
+                other.assignmentId == assignmentId) &&
             (identical(other.lek, lek) || other.lek == lek) &&
             (identical(other.lrPr, lrPr) || other.lrPr == lrPr) &&
             (identical(other.kp, kp) || other.kp == kp) &&
@@ -395,6 +414,7 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
       year,
       subject,
       group,
+      assignmentId,
       lek,
       lrPr,
       kp,
@@ -423,6 +443,7 @@ abstract class _VychitkaEntry extends VychitkaEntry {
       required final int year,
       required final String subject,
       required final String group,
+      final String assignmentId,
       final double lek,
       final double lrPr,
       final double kp,
@@ -447,6 +468,8 @@ abstract class _VychitkaEntry extends VychitkaEntry {
   String get subject;
   @override
   String get group;
+  @override
+  String get assignmentId;
   @override
   double get lek;
   @override

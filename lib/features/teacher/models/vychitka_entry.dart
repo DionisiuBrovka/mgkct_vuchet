@@ -15,6 +15,7 @@ class VychitkaEntry with _$VychitkaEntry {
     required int year,
     required String subject,
     required String group,
+    @Default('') String assignmentId,
     @Default(0) double lek,
     @Default(0) double lrPr,
     @Default(0) double kp,

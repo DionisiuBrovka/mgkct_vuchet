@@ -7,8 +7,9 @@ enum UserRole { teacher, admin }
 @freezed
 class AppUser with _$AppUser {
   const factory AppUser({
+    required String id,
+    required String profileId,
     required String name,
-    required String password,
     required UserRole role,
   }) = _AppUser;
 }

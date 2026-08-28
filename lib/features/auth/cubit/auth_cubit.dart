@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/pocket_base_service.dart';
+import '../../../injection.dart';
 import '../repository/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -22,5 +24,8 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  void logout() => emit(const AuthInitial());
+  void logout() {
+    getIt<PocketBaseService>().logout();
+    emit(const AuthInitial());
+  }
 }

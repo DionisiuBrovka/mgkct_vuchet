@@ -5,6 +5,7 @@ part 'zamena.freezed.dart';
 @freezed
 class Zamena with _$Zamena {
   const factory Zamena({
+    @Default('') String id,
     required String teacher,
     required String month,
     required int year,
