@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             const LinearProgressIndicator()
                           else
                             DropdownButtonFormField<String>(
-                              value: _selectedName,
+                              initialValue: _selectedName,
                               decoration:
                                   const InputDecoration(labelText: 'ФИО'),
                               items: _names

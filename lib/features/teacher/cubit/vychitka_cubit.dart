@@ -66,8 +66,10 @@ class VychitkaCubit extends Cubit<VychitkaState> {
     final loaded = state as VychitkaLoaded;
     emit(loaded.copyWith(isSaving: true));
     try {
-      await _repo.saveOrUpdateEntries(loaded.entries);
-      emit(loaded.copyWith(isSaving: false));
+      // Сохраняем и используем возвращённые записи: у новых черновиков сервер
+      // назначает id/assignmentId, без этого повторное сохранение создаёт дубли.
+      final saved = await _repo.saveOrUpdateEntries(loaded.entries);
+      emit(loaded.copyWith(entries: saved, isSaving: false));
     } catch (e) {
       emit(VychitkaError(e.toString()));
     }
@@ -77,9 +79,9 @@ class VychitkaCubit extends Cubit<VychitkaState> {
     final loaded = state as VychitkaLoaded;
     emit(loaded.copyWith(isSaving: true));
     try {
-      await _repo.saveOrUpdateEntries(loaded.entries);
+      final saved = await _repo.saveOrUpdateEntries(loaded.entries);
       await _repo.submitMonth(_teacher!, _month!, _year!);
-      final updated = loaded.entries
+      final updated = saved
           .map((e) => e.copyWith(status: VychitkaStatus.submitted))
           .toList();
       emit(loaded.copyWith(entries: updated, isSaving: false));
@@ -90,27 +92,31 @@ class VychitkaCubit extends Cubit<VychitkaState> {
 
   Future<void> addZamena(Zamena z) async {
     final loaded = state as VychitkaLoaded;
-    await _repo.saveZamena(z);
-    emit(loaded.copyWith(zameny: [...loaded.zameny, z]));
+    try {
+      await _repo.saveZamena(z);
+      emit(loaded.copyWith(zameny: [...loaded.zameny, z]));
+    } catch (e) {
+      emit(VychitkaError(e.toString()));
+    }
   }
 
   Future<void> deleteZamena(Zamena z) async {
     final loaded = state as VychitkaLoaded;
-    await _repo.deleteZamena(z.teacher, z.month, z.year, z.date);
-    final updated = loaded.zameny
-        .where((x) => !(x.teacher == z.teacher && x.date == z.date))
-        .toList();
-    emit(loaded.copyWith(zameny: updated));
+    try {
+      await _repo.deleteZamena(z.teacher, z.month, z.year, z.date);
+      final updated = loaded.zameny
+          .where((x) => !(x.teacher == z.teacher && x.date == z.date))
+          .toList();
+      emit(loaded.copyWith(zameny: updated));
+    } catch (e) {
+      emit(VychitkaError(e.toString()));
+    }
   }
 
-  // Статусы всех месяцев учебного года для главного экрана преподавателя
+  // Статусы всех месяцев учебного года для главного экрана преподавателя.
+  // Использует один запрос вместо 11 последовательных.
   Future<Map<String, VychitkaStatus>> loadAllMonthStatuses(
-      String teacher, int academicYearStart) async {
-    final map = <String, VychitkaStatus>{};
-    for (final month in AppConstants.months) {
-      final year = AppConstants.yearForMonth(month, academicYearStart);
-      map[month] = await _repo.getMonthStatus(teacher, month, year);
-    }
-    return map;
+      String teacher, int academicYearStart) {
+    return _repo.getMonthStatusesForYear(teacher, academicYearStart);
   }
 }

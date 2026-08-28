@@ -10,7 +10,6 @@ import 'features/auth/cubit/auth_state.dart';
 import 'features/auth/models/app_user.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/teacher/cubit/vychitka_cubit.dart';
-import 'features/teacher/screens/confirm_screen.dart';
 import 'features/teacher/screens/fill_vychitka_screen.dart';
 import 'features/teacher/screens/teacher_home_screen.dart';
 import 'injection.dart';
@@ -68,16 +67,6 @@ class _AppState extends State<App> {
                 ),
               ),
             ),
-            GoRoute(
-              path: 'confirm',
-              builder: (_, state) {
-                final extra = state.extra! as _ConfirmExtra;
-                return ConfirmScreen(
-                  month: extra.month,
-                  year: extra.year,
-                );
-              },
-            ),
           ],
         ),
         GoRoute(
@@ -116,12 +105,6 @@ class _AppState extends State<App> {
       ),
     );
   }
-}
-
-class _ConfirmExtra {
-  const _ConfirmExtra({required this.month, required this.year});
-  final String month;
-  final int year;
 }
 
 class _RouterNotifier extends ChangeNotifier {

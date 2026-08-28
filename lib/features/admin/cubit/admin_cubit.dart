@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../teacher/models/vychitka_entry.dart';
 import '../../teacher/repository/vychitka_repository.dart';
 import 'admin_state.dart';
 
@@ -42,8 +43,17 @@ class AdminCubit extends Cubit<AdminState> {
         entries: loaded.entries, zameny: loaded.zameny, isUpdating: true));
     try {
       await _repo.confirmMonth(teacher, month, year, confirmedBy);
+      final now = DateTime.now();
       emit(AdminReviewLoaded(
-          entries: loaded.entries, zameny: loaded.zameny, isUpdating: false));
+        entries: loaded.entries
+            .map((e) => e.copyWith(
+                status: VychitkaStatus.confirmed,
+                confirmedAt: now,
+                confirmedBy: confirmedBy))
+            .toList(),
+        zameny: loaded.zameny,
+        isUpdating: false,
+      ));
     } catch (e) {
       emit(AdminError(e.toString()));
     }
@@ -56,7 +66,11 @@ class AdminCubit extends Cubit<AdminState> {
     try {
       await _repo.rejectMonth(teacher, month, year);
       emit(AdminReviewLoaded(
-          entries: loaded.entries, zameny: loaded.zameny, isUpdating: false));
+        entries:
+            loaded.entries.map((e) => e.copyWith(status: VychitkaStatus.draft)).toList(),
+        zameny: loaded.zameny,
+        isUpdating: false,
+      ));
     } catch (e) {
       emit(AdminError(e.toString()));
     }

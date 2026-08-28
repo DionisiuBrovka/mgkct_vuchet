@@ -21,7 +21,10 @@ class PocketBaseService {
     _pb = PocketBase(baseUrl, reuseHTTPClient: true);
   }
 
-  void logout() => _pb.authStore.clear();
+  void logout() {
+    _pb.authStore.clear();
+    _invalidateProfiles();
+  }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -58,6 +61,23 @@ class PocketBaseService {
   UserRole _role(RecordModel profile) =>
       _s(profile, 'role') == 'admin' ? UserRole.admin : UserRole.teacher;
 
+  /// Профили (user_profiles), загруженные один раз за сессию и кэшируемые.
+  /// Профили появляются редко (чаще всего при первом запуске/засеве), поэтому
+  /// повторная загрузка всей коллекции на каждый запрос не нужна.
+  List<RecordModel>? _profilesCache;
+
+  /// Загружает (или возвращает закэшированные) профили.
+  Future<List<RecordModel>> _profiles() async {
+    if (_profilesCache != null) return _profilesCache!;
+    final list = await _pb.collection(AppConstants.profilesColl)
+        .getFullList(sort: '+display_name');
+    _profilesCache = list;
+    return list;
+  }
+
+  /// Сбрасывает кэш профилей (после login/logout или засева данных).
+  void _invalidateProfiles() => _profilesCache = null;
+
   /// Ищет profileId (user_profiles) по display_name.
   Future<String?> _profileIdOf(String name) async {
     final p = await _profileByDisplayName(name);
@@ -66,17 +86,20 @@ class PocketBaseService {
 
   /// Ищет профиль (user_profiles) по display_name.
   Future<RecordModel?> _profileByDisplayName(String name) async {
-    final list = await _pb.collection(AppConstants.profilesColl).getFullList(
-          filter: _pb.filter('display_name = {:name}', {'name': name}),
-        );
-    return list.isEmpty ? null : list.first;
+    final profiles = await _profiles();
+    for (final p in profiles) {
+      if (p.data['display_name'] == name) return p;
+    }
+    return null;
   }
 
   /// Ищет профиль (user_profiles) по id связанной auth-записи.
   Future<RecordModel?> _profileOfAuth(String authId) async {
-    final list = await _pb.collection(AppConstants.profilesColl)
-        .getFullList(filter: _pb.filter('user = {:id}', {'id': authId}));
-    return list.isEmpty ? null : list.first;
+    final profiles = await _profiles();
+    for (final p in profiles) {
+      if (_ns(p, 'user') == authId) return p;
+    }
+    return null;
   }
 
   /// Строит текущего пользователя из authStore.
@@ -85,11 +108,10 @@ class PocketBaseService {
     if (auth == null) return null;
     final profile = await _profileOfAuth(auth.id);
     if (profile == null) return null;
-    final name = _ns(auth, 'display_name') ?? ''; // for real key name maybe missing
     return AppUser(
       id: auth.id,
       profileId: profile.id,
-      name: name,
+      name: _s(profile, 'display_name'),
       role: _role(profile),
     );
   }
@@ -107,12 +129,12 @@ class PocketBaseService {
     } catch (_) {
       return null;
     }
+    _invalidateProfiles();
     return _currentUser();
   }
 
   Future<List<AppUser>> getAllUsers() async {
-    final profiles = await _pb.collection(AppConstants.profilesColl)
-        .getFullList(expand: 'user', sort: '+display_name');
+    final profiles = await _profiles();
     final result = <AppUser>[];
     for (final p in profiles) {
       final authId = _ns(p, 'user') ?? '';
@@ -149,6 +171,39 @@ class PocketBaseService {
   }
 
   // ─── Vychitki ─────────────────────────────────────────────────────────────
+
+  /// Статусы всех месяцев учебного года одним запросом: тянет все вычитки
+  /// профиля за указанный академический год и агрегирует статусы по месяцам.
+  Future<Map<String, VychitkaStatus>> getMonthStatusesForYear(
+    String teacher,
+    int academicYearStart,
+  ) async {
+    final profileId = await _profileIdOf(teacher);
+    if (profileId == null) return {};
+
+    final entries = await _pb.collection(AppConstants.vychitkiColl).getFullList(
+      filter: _pb.filter(
+        'assignment.teacher = {:id} && year >= {:y0} && year <= {:y1}',
+        {
+          'id': profileId,
+          'y0': academicYearStart,
+          'y1': academicYearStart + 1,
+        },
+      ),
+    );
+
+    final map = <String, VychitkaStatus>{};
+    for (final r in entries) {
+      final month = _s(r, 'month');
+      final status = _parseStatus(_s(r, 'status'));
+      if (month.isEmpty) continue;
+      final existing = map[month];
+      if (existing == null || status.index > existing.index) {
+        map[month] = status;
+      }
+    }
+    return map;
+  }
 
   Future<List<VychitkaEntry>> getVychitki({
     String? teacher,
@@ -269,19 +324,24 @@ class PocketBaseService {
     return rows.isEmpty ? null : rows.first.id;
   }
 
-  Future<void> saveEntries(List<VychitkaEntry> entries) async {
+  /// Сохраняет записи и возвращает их с актуальными `id`/`assignmentId`
+  /// (у только что созданных записей сервер присваивает id). Возвращение
+  /// обновлённых записей важно, иначе повторное сохранение создаст дубликаты.
+  Future<List<VychitkaEntry>> saveEntries(List<VychitkaEntry> entries) async {
+    final updated = <VychitkaEntry>[];
     for (final e in entries) {
-      await _saveEntry(e);
+      updated.add(await _saveEntry(e));
     }
+    return updated;
   }
 
-  Future<void> _saveEntry(VychitkaEntry e) async {
+  Future<VychitkaEntry> _saveEntry(VychitkaEntry e) async {
     final profileId = await _profileIdOf(e.teacher);
-    if (profileId == null) return;
+    if (profileId == null) return e;
     final assignmentId = e.assignmentId.isNotEmpty
         ? e.assignmentId
         : await _assignmentIdOf(e, profileId);
-    if (assignmentId == null) return;
+    if (assignmentId == null) return e;
 
     final body = <String, Object?>{
       // assignment, month, year остаются без изменений при update
@@ -295,7 +355,8 @@ class PocketBaseService {
 
     final isNew = e.id.isEmpty || e.assignmentId.isEmpty;
     if (isNew) {
-      await _pb.collection(AppConstants.vychitkiColl).create(body: {
+      final created =
+          await _pb.collection(AppConstants.vychitkiColl).create(body: {
         'assignment': assignmentId,
         'month': e.month,
         'year': e.year,
@@ -305,15 +366,17 @@ class PocketBaseService {
         'confirmed_by': '',
         ...body,
       });
+      return e.copyWith(id: created.id, assignmentId: assignmentId);
     } else {
       // Зафиксированная (confirmed) запись заблокирована навсегда.
       final existing = await _pb
           .collection(AppConstants.vychitkiColl)
           .getOne(e.id, query: {'fields': 'status'});
       if (_s(existing, 'status') == _statusStr(VychitkaStatus.confirmed)) {
-        return;
+        return e;
       }
       await _pb.collection(AppConstants.vychitkiColl).update(e.id, body: body);
+      return e;
     }
   }
 

@@ -64,8 +64,13 @@ class _FillVychitkaScreenState extends State<FillVychitkaScreen> {
                 controller: dateCtrl,
                 decoration:
                     const InputDecoration(labelText: 'Дата (ДД.ММ.ГГГГ)'),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Обязательно' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Обязательно';
+                  if (!RegExp(r'^\d{2}\.\d{2}\.\d{4}$').hasMatch(v)) {
+                    return 'Формат ДД.ММ.ГГГГ';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -129,8 +134,8 @@ class _FillVychitkaScreenState extends State<FillVychitkaScreen> {
             return Center(child: Text(state.message));
           }
           final loaded = state as VychitkaLoaded;
-          final locked = loaded.entries.isNotEmpty &&
-              loaded.entries.first.status != VychitkaStatus.draft;
+          final locked = loaded.entries.any(
+              (e) => e.status != VychitkaStatus.draft);
 
           return Form(
             key: _formKey,
@@ -145,7 +150,10 @@ class _FillVychitkaScreenState extends State<FillVychitkaScreen> {
                       child: Row(
                         children: [
                           const Text('Статус: '),
-                          StatusBadge(loaded.entries.first.status),
+                          StatusBadge(loaded.entries
+                              .map((e) => e.status)
+                              .reduce((a, b) =>
+                                  a.index >= b.index ? a : b)),
                         ],
                       ),
                     ),

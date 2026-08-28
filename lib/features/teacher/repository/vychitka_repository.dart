@@ -11,17 +11,6 @@ class VychitkaRepository {
   Future<List<Assignment>> getAssignments(String teacher, int year) =>
       _pb.getAssignments(teacher, year);
 
-  Future<VychitkaStatus> getMonthStatus(
-    String teacher,
-    String month,
-    int year,
-  ) async {
-    final entries =
-        await _pb.getVychitki(teacher: teacher, month: month, year: year);
-    if (entries.isEmpty) return VychitkaStatus.draft;
-    return entries.first.status;
-  }
-
   Future<List<VychitkaEntry>> getEntries(
     String teacher,
     String month,
@@ -29,7 +18,15 @@ class VychitkaRepository {
   ) =>
       _pb.getVychitki(teacher: teacher, month: month, year: year);
 
-  Future<void> saveOrUpdateEntries(List<VychitkaEntry> entries) =>
+  /// Статусы всех месяцев учебного года (один запрос вместо 11).
+  Future<Map<String, VychitkaStatus>> getMonthStatusesForYear(
+    String teacher,
+    int academicYearStart,
+  ) =>
+      _pb.getMonthStatusesForYear(teacher, academicYearStart);
+
+  Future<List<VychitkaEntry>> saveOrUpdateEntries(
+          List<VychitkaEntry> entries) =>
       _pb.saveEntries(entries);
 
   Future<void> submitMonth(String teacher, String month, int year) =>

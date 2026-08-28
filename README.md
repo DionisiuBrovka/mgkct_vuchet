@@ -1,6 +1,6 @@
 # 📚 Вычитка — Учёт учебной нагрузки преподавателей
 
-Flutter-приложение для сбора и подтверждения данных о вычитанных часах преподавателей. Бэкенд — Google Таблицы (Google Sheets API v4).
+Flutter-приложение для сбора и подтверждения данных о вычитанных часах преподавателей. Бэкенд — **PocketBase** (самохостинг, одна Linux-машина в локальной сети колледжа).
 
 ---
 
@@ -9,16 +9,18 @@ Flutter-приложение для сбора и подтверждения д�
 - [О проекте](#о-проекте)
 - [Роли и права доступа](#роли-и-права-доступа)
 - [Стек технологий](#стек-технологий)
-- [Структура Google Таблицы](#структура-google-таблицы)
+- [Структура данных (PocketBase)](#структура-данных-pocketbase)
 - [Структура проекта](#структура-проекта)
 - [Установка и настройка](#установка-и-настройка)
+- [Развёртывание](#развёртывание)
 - [Архитектура приложения](#архитектура-приложения)
 - [Экраны и пользовательский сценарий](#экраны-и-пользовательский-сценарий)
 - [Модели данных](#модели-данных)
 - [Сервисный слой](#сервисный-слой)
-- [Ограничения и квоты Google Sheets API](#ограничения-и-квоты-google-sheets-api)
+- [Учебный год и навигация по месяцам](#учебный-год-и-навигация-по-месяцам)
 - [Безопасность](#безопасность)
 - [Возможные доработки](#возможные-доработки)
+- [Лицензия](#лицензия)
 
 ---
 
@@ -33,7 +35,7 @@ Flutter-приложение для сбора и подтверждения д�
 - Отправляет вычитку на проверку
 - Завуч/администратор просматривает все поданные вычитки и подтверждает их
 - После подтверждения вычитка **блокируется и не может быть изменена**
-- Все данные хранятся в Google Таблице, доступной администратору напрямую
+- Все данные хранятся в PocketBase (SQLite-база на сервере колледжа)
 
 ---
 
@@ -69,10 +71,9 @@ Flutter-приложение для сбора и подтверждения д�
 |---|---|
 | UI | Flutter 3.x |
 | Управление состоянием | flutter_bloc / Cubit |
-| Бэкенд | Google Sheets API v4 |
-| Авторизация в API | Service Account (JSON-ключ) |
-| HTTP / Google API | `googleapis` + `googleapis_auth` |
-| Модели | `freezed` + `json_serializable` |
+| Бэкенд | PocketBase (REST API + SQLite, отдаёт и веб-сборку) |
+| HTTP / PocketBase | `pocketbase` |
+| Модели | `freezed` |
 | DI | `get_it` |
 | Навигация | `go_router` |
 
@@ -83,9 +84,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Google API
-  googleapis: ^13.0.0
-  googleapis_auth: ^1.6.0
+  # Backend
+  pocketbase: ^0.25.0
   http: ^1.2.0
 
   # State management
@@ -112,160 +112,127 @@ dev_dependencies:
 
 ---
 
-## Структура Google Таблицы
+## Структура данных (PocketBase)
 
-Таблица содержит **4 листа**. Администратор создаёт таблицу вручную и заполняет первые два листа перед запуском приложения.
+Схема создаётся автоматически миграцией `tools/pocketbase/pb_migrations/1756000000000_init_collections.js`.
 
----
+### Коллекция `users` (auth, встроенная)
 
-### Лист 1 — `Пользователи`
+Аккаунты для входа (это встроенная коллекция авторизации PocketBase). К базовым полям (`email`, `password`) добавлено поле `display_name` — то же ФИО, что и в профиле.
 
-Заполняется администратором вручную. Содержит всех пользователей системы.
-
-| Столбец | Название | Описание |
+| Поле | Тип | Описание |
 |---|---|---|
-| A | name | Полное ФИО (именно так будет отображаться в приложении) |
-| B | password | Пароль в открытом виде |
-| C | role | `teacher` или `admin` |
+| id | text | ID записи |
+| email | email | email (используется при authWithPassword) |
+| password | password | пароль |
+| display_name | text | ФИО преподавателя |
 
-**Пример:**
+### Коллекция `user_profiles` (base)
 
-| name | password | role |
+Связывает аккаунт (users) с ролью и отображаемым именем. Именно по `display_name` приложение показывает пользователя и ищет его при входе.
+
+| Поле | Тип | Описание |
 |---|---|---|
-| Иванов Иван Иванович | pass123 | teacher |
-| Петрова Анна Сергеевна | qwerty | teacher |
-| Сидоров Алексей Петрович | admin2024 | admin |
+| id | text | ID записи |
+| user | relation → users | связанный аккаунт |
+| display_name | text | ФИО (как в приложении) |
+| email | email | email (для логина) |
+| role | select | `teacher` / `admin` |
 
----
+### Коллекция `assignments` (base)
 
-### Лист 2 — `Назначения`
+Назначение «преподаватель → предмет → группа → учебный год».
 
-Заполняется администратором. Определяет, какой преподаватель ведёт какой предмет в какой группе.
-
-| Столбец | Название | Описание |
+| Поле | Тип | Описание |
 |---|---|---|
-| A | teacher | ФИО преподавателя (точно как в листе Пользователи) |
-| B | subject | Название учебного предмета |
-| C | course | Курс (1, 2, 3 и т.д.) |
-| D | group | Номер учебной группы |
+| teacher | relation → user_profiles | преподаватель |
+| subject | text | предмет |
+| group | text | учебная группа |
+| year | number | год начала учебного года |
 
-**Пример:**
+### Коллекция `vychitki` (base)
 
-| teacher | subject | course | group |
-|---|---|---|---|
-| Иванов Иван Иванович | Математика | 1 | 101 |
-| Иванов Иван Иванович | Математика | 1 | 102 |
-| Иванов Иван Иванович | Алгебра | 2 | 201 |
-| Петрова Анна Сергеевна | Физика | 1 | 101 |
+Одна строка — запись «назначение × месяц × год» с часами и статусом.
 
----
-
-### Лист 3 — `Вычитки`
-
-Заполняется приложением автоматически. Каждая строка — одна запись (преподаватель × предмет × группа × месяц).
-
-| Столбец | Название | Описание |
+| Поле | Тип | Описание |
 |---|---|---|
-| A | id | Уникальный UUID записи |
-| B | teacher | ФИО преподавателя |
-| C | month | Месяц (например, `Октябрь`) |
-| D | year | Год (например, `2025`) |
-| E | subject | Учебный предмет |
-| F | course | Курс |
-| G | group | Учебная группа |
-| H | лек | Лекции (часы) |
-| I | лр_пр | Лабораторные / практические (часы) |
-| J | кп | Курсовой проект (часы) |
-| K | конс | Консультации (часы) |
-| L | доп_контр | Дополнительный контроль (часы) |
-| M | экз | Экзамен / дифференцированный зачёт (часы) |
-| N | status | `draft` / `submitted` / `confirmed` |
-| O | submitted_at | Дата и время отправки (ISO 8601) |
-| P | confirmed_at | Дата и время подтверждения (ISO 8601) |
-| Q | confirmed_by | ФИО завуча, который подтвердил |
+| assignment | relation → assignments | назначение (предмет+группа) |
+| month | text | месяц (например, `Октябрь`) |
+| year | number | календарный год месяца |
+| lek | number | лекции (часы) |
+| lrPr | number | лаб./практические (часы) |
+| kp | number | курсовой проект (часы) |
+| cons | number | консультации (часы) |
+| dopKontr | number | доп. контроль (часы) |
+| ekz | number | экзамен / диф. зачёт (часы) |
+| status | select | `draft` / `submitted` / `confirmed` |
+| submitted_at | date | дата/время отправки |
+| confirmed_at | date | дата/время подтверждения |
+| confirmed_by | relation → user_profiles | завуч, подтвердивший вычитку |
 
----
+### Коллекция `zameny` (base)
 
-### Лист 4 — `Замены`
+Замена преподавателя.
 
-Заполняется приложением. Каждая строка — одна замена преподавателя.
-
-| Столбец | Название | Описание |
+| Поле | Тип | Описание |
 |---|---|---|
-| A | teacher | ФИО преподавателя |
-| B | month | Месяц |
-| C | year | Год |
-| D | group | Группа, которую заменял |
-| E | date | Дата замены (`ДД.ММ.ГГГГ`) |
-| F | hours | Количество часов |
+| teacher | relation → user_profiles | преподаватель |
+| month | text | месяц |
+| year | number | календарный год |
+| group | text | группа, которую заменял |
+| date | text | дата (ДД.ММ.ГГГГ) |
+| hours | number | количество часов |
 
 ---
 
 ## Структура проекта
 
 ```
-vychitka_app/
-├── android/
-├── ios/
+mgkct_vuchet/
+├── android/ ios/ linux/ macos/ web/ windows/   # платформенные обёртки Flutter
 ├── assets/
-│   └── service_account.json      # ← ключ сервисного аккаунта (в .gitignore!)
+│   └── images/back.png                          # фоновое изображение
+├── docker/                                      # Docker-развёртывание
+│   ├── Dockerfile                               # сборка Flutter Web + PocketBase
+│   ├── docker-compose.yml
+│   ├── entrypoint.sh
+│   └── build.sh
+├── tools/pocketbase/                            # локальный PocketBase для разработки
+│   ├── pocketbase                                # бинарник (в .gitignore)
+│   ├── pb_migrations/                            # миграции схемы
+│   └── run.sh                                    # локальный запуск
+│
 ├── lib/
-│   ├── main.dart
-│   ├── app.dart                  # MaterialApp + GoRouter
-│   ├── injection.dart            # get_it регистрация зависимостей
+│   ├── main.dart                                 # точка входа
+│   ├── app.dart                                  # MaterialApp + GoRouter
+│   ├── injection.dart                            # get_it регистрация зависимостей
 │   │
 │   ├── core/
-│   │   ├── constants.dart        # ID таблицы, названия листов, месяцы
-│   │   ├── sheets_service.dart   # весь CRUD с Google Sheets API
-│   │   └── extensions.dart       # вспомогательные расширения
+│   │   ├── constants.dart                        # URL, названия коллекций, месяцы
+│   │   └── pocket_base_service.dart              # единственная точка работы с API
 │   │
 │   ├── features/
-│   │   │
 │   │   ├── auth/
-│   │   │   ├── models/
-│   │   │   │   └── app_user.dart
-│   │   │   ├── repository/
-│   │   │   │   └── auth_repository.dart
-│   │   │   ├── cubit/
-│   │   │   │   ├── auth_cubit.dart
-│   │   │   │   └── auth_state.dart
-│   │   │   └── screens/
-│   │   │       └── login_screen.dart
-│   │   │
+│   │   │   ├── models/app_user.dart
+│   │   │   ├── repository/auth_repository.dart
+│   │   │   ├── cubit/{auth_cubit, auth_state}.dart
+│   │   │   └── screens/login_screen.dart
 │   │   ├── teacher/
-│   │   │   ├── models/
-│   │   │   │   ├── assignment.dart        # назначение преподавателя
-│   │   │   │   ├── vychitka_entry.dart    # строка вычитки
-│   │   │   │   └── zamena.dart            # замена
-│   │   │   ├── repository/
-│   │   │   │   └── vychitka_repository.dart
-│   │   │   ├── cubit/
-│   │   │   │   ├── vychitka_cubit.dart
-│   │   │   │   └── vychitka_state.dart
-│   │   │   └── screens/
-│   │   │       ├── teacher_home_screen.dart    # список месяцев со статусами
-│   │   │       ├── fill_vychitka_screen.dart   # форма заполнения
-│   │   │       └── confirm_screen.dart          # итоги перед отправкой
-│   │   │
+│   │   │   ├── models/{assignment, vychitka_entry, zamena}.dart
+│   │   │   ├── repository/vychitka_repository.dart
+│   │   │   ├── cubit/{vychitka_cubit, vychitka_state}.dart
+│   │   │   └── screens/{teacher_home, fill_vychitka}.dart
 │   │   └── admin/
-│   │       ├── cubit/
-│   │       │   ├── admin_cubit.dart
-│   │       │   └── admin_state.dart
-│   │       └── screens/
-│   │           ├── admin_home_screen.dart   # все вычитки всех препод.
-│   │           └── review_screen.dart       # просмотр + подтверждение
+│   │       ├── cubit/{admin_cubit, admin_state}.dart
+│   │       └── screens/{admin_home, review}.dart
 │   │
 │   └── shared/
-│       ├── widgets/
-│       │   ├── month_status_card.dart
-│       │   ├── hours_input_field.dart
-│       │   └── status_badge.dart
-│       └── theme/
-│           └── app_theme.dart
+│       ├── widgets/{month_status_card, hours_input_field, status_badge}.dart
+│       └── theme/app_theme.dart
 │
-├── test/
+├── DEPLOY.md                                     # подробное развёртывание
+├── CLAUDE.md
 ├── pubspec.yaml
-├── .gitignore
 └── README.md
 ```
 
@@ -273,73 +240,61 @@ vychitka_app/
 
 ## Установка и настройка
 
-### Шаг 1 — Google Cloud Console
+### Локальная разработка
 
-1. Перейди на [console.cloud.google.com](https://console.cloud.google.com)
-2. Создай новый проект (например, `vychitka-app`)
-3. Включи API: **APIs & Services → Enable APIs → Google Sheets API**
-4. Создай сервисный аккаунт: **IAM & Admin → Service Accounts → Create**
-   - Название: `vychitka-service`
-   - Роль: `Editor` (или `Viewer` — но тогда не сможет писать)
-5. Создай JSON-ключ: **Keys → Add Key → Create new key → JSON**
-6. Скачай файл и переименуй в `service_account.json`
+1. Запусти локальный PocketBase:
 
-### Шаг 2 — Настройка Google Таблицы
-
-1. Создай новую Google Таблицу
-2. Создай 4 листа с точными названиями:
-   - `Пользователи`
-   - `Назначения`
-   - `Вычитки`
-   - `Замены`
-3. В каждом листе сделай строку заголовков (строка 1) согласно структуре выше
-4. Заполни `Пользователи` и `Назначения`
-5. **Дай доступ сервисному аккаунту:** Поделиться → вставь email из JSON-ключа (поле `client_email`) → роль **Редактор**
-6. Скопируй ID таблицы из URL:
-   ```
-   https://docs.google.com/spreadsheets/d/ЭТОТ_ID_НУЖЕН/edit
-   ```
-
-### Шаг 3 — Настройка проекта Flutter
-
-1. Клонируй репозиторий:
    ```bash
-   git clone https://github.com/your-org/vychitka-app.git
-   cd vychitka-app
+   bash tools/pocketbase/run.sh
+   # применяет миграции и поднимает API на http://127.0.0.1:8090
    ```
 
-2. Положи `service_account.json` в папку `assets/`:
-   ```
-   assets/
-   └── service_account.json
-   ```
-
-3. Убедись что файл прописан в `pubspec.yaml`:
-   ```yaml
-   flutter:
-     assets:
-       - assets/service_account.json
-   ```
-
-4. Пропиши ID таблицы в `lib/core/constants.dart`:
-   ```dart
-   static const spreadsheetId = 'ВАШ_SPREADSHEET_ID_ЗДЕСЬ';
-   ```
-
-5. Установи зависимости:
+2. Установи зависимости:
    ```bash
    flutter pub get
    ```
 
-6. Сгенерируй код моделей:
+3. Если менял модели (`freezed`) — сгенерируй код:
    ```bash
    dart run build_runner build --delete-conflicting-outputs
    ```
 
-7. Запусти приложение:
+4. Запусти приложение:
    ```bash
    flutter run
    ```
+
+> Если в базе нет пользователей, при первом старте контейнера (Docker) выполняется
+> авто-засев тестовых данных (см. `docker/entrypoint.sh`). При локальном запуске
+> пользователей/назначения добавляют через админку PocketBase (`http://127.0.0.1:8090/_/`).
+
+### Конфигурация адреса
+
+Адрес PocketBase задаётся в `lib/core/constants.dart`:
+
+```dart
+static const pocketBaseUrl = 'http://127.0.0.1:8090'; // разработка
+// для прода — реальный IP сервера, например:
+// static const pocketBaseUrl = 'http://192.168.1.50:8090';
+```
+
+---
+
+## Развёртывание
+
+Проект разворачивается **Docker-контейнером**: PocketBase (API + база) и собранная
+Flutter Web-версия живут на одной Linux-машине и доступны по локальной сети.
+
+```bash
+bash docker/build.sh
+```
+
+Доступ:
+- приложение — `http://<IP-сервера>:8090/`
+- админка PocketBase — `http://<IP-сервера>:8090/_/`
+- API-проверка — `curl http://<IP-сервера>:8090/api/health`
+
+Полное руководство — в [DEPLOY.md](DEPLOY.md) (включая нативный способ без Docker, systemd-сервис, бэкапы, обновления).
 
 ---
 
@@ -349,7 +304,7 @@ vychitka_app/
 ┌─────────────────────────────────────────────────────┐
 │                    Presentation                      │
 │  LoginScreen │ TeacherHomeScreen │ AdminHomeScreen   │
-│  FillVychitkaScreen │ ConfirmScreen │ ReviewScreen   │
+│  FillVychitkaScreen │ ReviewScreen                  │
 └──────────────────────┬──────────────────────────────┘
                        │ BLoC / Cubit
 ┌──────────────────────▼──────────────────────────────┐
@@ -363,19 +318,24 @@ vychitka_app/
 └──────────────────────┬──────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────┐
-│                   SheetsService                      │
-│         (единственная точка работы с API)            │
+│                   PocketBaseService                  │
+│        (единственная точка работы с API)             │
 └──────────────────────┬──────────────────────────────┘
-                       │ googleapis
+                       │ pocketbase SDK
 ┌──────────────────────▼──────────────────────────────┐
-│              Google Sheets API v4                    │
-└──────────────────────┬──────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────┐
-│               Google Таблица                         │
-│  Пользователи │ Назначения │ Вычитки │ Замены        │
+│                    PocketBase                        │
+│   users │ user_profiles │ assignments │ vychitki     │
+│   zameny                                            │
 └─────────────────────────────────────────────────────┘
 ```
+
+**Ключевые решения:**
+
+- `PocketBaseService` (`lib/core/pocket_base_service.dart`) — **единственный** класс, работающий
+  с PocketBase. Репозитории вызывают его; кубиты никогда не обращаются к API напрямую.
+- Маппинг relations (профиль ↔ имя, запись ↔ назначение) инкапсулирован в `PocketBaseService`.
+- DI — через `get_it` (`lib/injection.dart`), навигация — через `go_router` (`lib/app.dart`).
+- Запись со статусом `confirmed` **заблокирована**: сервис не даёт её обновить.
 
 ---
 
@@ -385,7 +345,7 @@ vychitka_app/
 
 ```
 [Экран входа]
-  • Выпадающий список ФИО всех преподавателей
+  • Выпадающий список ФИО всех пользователей
   • Поле пароля
   • Кнопка "Войти"
         │
@@ -398,28 +358,12 @@ vychitka_app/
       ✅  Подтверждена  — заблокирована навсегда
   • Кнопка выхода
         │
-        ▼ (нажать на месяц со статусом "черновик")
+        ▼ (нажать на месяц)
 [Экран заполнения вычитки]
   • Заголовок: месяц + год
-  • Для каждого назначения (предмет + курс + группа):
-      ┌──────────────────────────────────────────┐
-      │ Математика · 1 курс · гр. 101            │
-      │  Лек:     [___]    ЛР/ПР:  [___]        │
-      │  КП:      [___]    Конс:   [___]        │
-      │  Доп.к:   [___]    Экз:    [___]        │
-      └──────────────────────────────────────────┘
-  • Секция "Замены":
-      [+ Добавить замену]  →  группа / дата / часы
-  • Кнопки:
-      [Сохранить черновик]    [Отправить на проверку →]
-        │
-        ▼ (нажать "Отправить на проверку")
-[Экран подтверждения]
-  • Итоговая таблица: все назначения и часы
-  • Итого часов по видам нагрузки
-  • Список замен
-  • Кнопки:
-      [← Назад]    [✅ Подтвердить и отправить]
+  • Для каждого назначения (предмет + курс + группа) — 6 полей часов
+  • Секция "Замены": добавить/удалить (группа / дата / часы)
+  • Кнопки: [Сохранить черновик] [Отправить →] (диалог подтверждения)
 ```
 
 ### Завуч / Администратор
@@ -430,20 +374,20 @@ vychitka_app/
         │
         ▼
 [Главный экран администратора]
-  • Фильтр по месяцу/году
-  • Список всех преподавателей + статус за выбранный месяц:
-      Иванов И.И.      📤 На проверке
-      Петрова А.С.     ✅ Подтверждена
-      Козлов В.Н.      ✏️  Черновик
+  • Выбор учебного года и месяца
+  • Список всех пользователей + статус за выбранный месяц
         │
-        ▼ (нажать на преподавателя со статусом "на проверке")
+        ▼ (нажать на пользователя — статус "на проверке" или "подтверждена")
 [Экран проверки вычитки]
   • Все данные вычитки (только просмотр)
   • Итоговые суммы по видам нагрузки
   • Список замен
-  • Кнопки:
-      [↩ Вернуть на доработку]    [✅ Подтвердить]
+  • Кнопки: [↩ Вернуть] [✓ Подтвердить]
 ```
+
+> **Примечание по архитектуре:** отправка вычитки преподавателем происходит сразу из
+> экрана заполнения через диалог подтверждения — отдельного промежуточного экрана нет.
+> Экран проверки у завуча показывает итоговые таблицы и позволяет подтвердить/вернуть.
 
 ---
 
@@ -451,16 +395,17 @@ vychitka_app/
 
 ### `AppUser`
 ```dart
+enum UserRole { teacher, admin }
+
 @freezed
 class AppUser with _$AppUser {
   const factory AppUser({
-    required String name,
-    required String password,
+    required String id,        // id аккаунта (users)
+    required String profileId, // id профиля (user_profiles)
+    required String name,      // display_name
     required UserRole role,
   }) = _AppUser;
 }
-
-enum UserRole { teacher, admin }
 ```
 
 ### `Assignment`
@@ -470,44 +415,41 @@ class Assignment with _$Assignment {
   const factory Assignment({
     required String teacher,
     required String subject,
-    required String course,
     required String group,
+    required int year,        // год начала учебного года
   }) = _Assignment;
 }
 ```
 
 ### `VychitkaEntry`
 ```dart
+enum VychitkaStatus { draft, submitted, confirmed }
+
 @freezed
 class VychitkaEntry with _$VychitkaEntry {
+  const VychitkaEntry._();
   const factory VychitkaEntry({
     required String id,
     required String teacher,
     required String month,
-    required int year,
+    required int year,          // календарный год месяца
     required String subject,
-    required String course,
     required String group,
-
-    // Виды нагрузки
-    @Default(0) double lek,        // Лекции
-    @Default(0) double lrPr,       // ЛР / ПР
-    @Default(0) double kp,         // Курсовой проект
-    @Default(0) double cons,       // Консультации
-    @Default(0) double dopKontr,   // Доп. контроль
-    @Default(0) double ekz,        // Экзамен / диф. зачёт
-
+    @Default('') String assignmentId,
+    @Default(0) double lek,
+    @Default(0) double lrPr,
+    @Default(0) double kp,
+    @Default(0) double cons,
+    @Default(0) double dopKontr,
+    @Default(0) double ekz,
     @Default(VychitkaStatus.draft) VychitkaStatus status,
     DateTime? submittedAt,
     DateTime? confirmedAt,
     String? confirmedBy,
   }) = _VychitkaEntry;
 
-  // Сумма всех часов по записи
   double get totalHours => lek + lrPr + kp + cons + dopKontr + ekz;
 }
-
-enum VychitkaStatus { draft, submitted, confirmed }
 ```
 
 ### `Zamena`
@@ -515,11 +457,12 @@ enum VychitkaStatus { draft, submitted, confirmed }
 @freezed
 class Zamena with _$Zamena {
   const factory Zamena({
+    @Default('') String id,
     required String teacher,
     required String month,
     required int year,
     required String group,
-    required String date,    // ДД.ММ.ГГГГ
+    required String date,      // ДД.ММ.ГГГГ
     required double hours,
   }) = _Zamena;
 }
@@ -529,20 +472,23 @@ class Zamena with _$Zamena {
 
 ## Сервисный слой
 
-`SheetsService` — единственный класс, работающий с Google Sheets API. Реализован как singleton.
-
-### Публичное API сервиса
+`PocketBaseService` — единственный класс, работающий с PocketBase. Реализован как singleton
+(регистрируется в `get_it`).
 
 ```dart
-class SheetsService {
-  // Инициализация (вызвать один раз при старте в main.dart)
+class PocketBaseService {
+  PocketBaseService(this.baseUrl);
+
   Future<void> init();
 
+  void logout();
+
   // Пользователи
-  Future<List<AppUser>> getUsers();
+  Future<AppUser?> login(String name, String password);
+  Future<List<AppUser>> getAllUsers();
 
   // Назначения
-  Future<List<Assignment>> getAssignments(String teacherName);
+  Future<List<Assignment>> getAssignments(String teacherName, int academicYear);
 
   // Вычитки — чтение
   Future<List<VychitkaEntry>> getVychitki({
@@ -551,20 +497,10 @@ class SheetsService {
     int? year,
   });
 
-  // Вычитки — запись черновика
+  // Вычитки — запись
   Future<void> saveEntries(List<VychitkaEntry> entries);
-
-  // Вычитки — обновить существующую запись
-  Future<void> updateEntry(VychitkaEntry entry);
-
-  // Преподаватель отправляет на проверку (draft → submitted)
   Future<void> submitMonth(String teacher, String month, int year);
-
-  // Завуч подтверждает (submitted → confirmed)
-  Future<void> confirmMonth(
-      String teacher, String month, int year, String confirmedBy);
-
-  // Завуч возвращает на доработку (submitted → draft)
+  Future<void> confirmMonth(String teacher, String month, int year, String confirmedBy);
   Future<void> rejectMonth(String teacher, String month, int year);
 
   // Замены
@@ -576,49 +512,39 @@ class SheetsService {
 
 ---
 
-## Ограничения и квоты Google Sheets API
+## Учебный год и навигация по месяцам
 
-| Параметр | Лимит |
-|---|---|
-| Запросов в минуту | 300 (на проект) |
-| Запросов в минуту на пользователя | 60 |
-| Строк в таблице | ~10 млн |
-| Размер ответа | 10 MB |
+Учебный год в колледже идёт с **сентября** по **июль** (11 месяцев). Порядок в приложении:
 
-**Рекомендации для оптимизации:**
+```dart
+static const months = [
+  'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',  // осень-зима
+  'Январь', 'Февраль', 'Март', 'Апрель',          // весна
+  'Май', 'Июнь', 'Июль',                          // лето
+];
+```
 
-- Загружать весь лист одним запросом, фильтровать на стороне Dart — не делать отдельный запрос на каждую строку
-- Кэшировать список назначений на сессию (они не меняются во время работы)
-- Показывать `CircularProgressIndicator` при каждом обращении к API — задержка 500–2000 мс это норма
+Месяцы осенне-зимнего семестра относятся к году начала учебного года (`Сентябрь..Декабрь`),
+остальные — к следующему календарному году. Текущий месяц определяется автоматически через
+`DateTime.now()`.
 
 ---
 
 ## Безопасность
 
-> ⚠️ **Важно:** `service_account.json` содержит приватный ключ. Обращайся с ним как с паролем от банка.
+Проект рассчитан на **внутреннюю локальную сеть** доверенного колледжа.
 
-### Обязательно:
+- Пароли хранятся в коллекции `users` (PocketBase хранит их в виде хэша при создании записи;
+  обратной расшифровки в приложении нет).
+- В `.gitignore` исключены: бинарник PocketBase, `pb_data/`, `service_account.json` (артефакт от
+  прежней версии на Google Sheets) — **не коммитить эти файлы**.
+- Рекомендуется:
+  - открывать порт `8090` только внутри локальной сети;
+  - ограничить доступ к каталогу `pb_data/`;
+  - периодически бэкапить `pb_data/data.db` (см. DEPLOY.md).
 
-- [ ] Добавить `assets/service_account.json` в `.gitignore`
-- [ ] Никогда не коммитить файл ключа в репозиторий
-- [ ] Для продакшна рассмотреть хранение ключа через `flutter_secure_storage` или серверный прокси
-
-### `.gitignore` (минимум):
-```gitignore
-# Ключ сервисного аккаунта — НИКОГДА не коммитить!
-assets/service_account.json
-
-# Flutter
-.dart_tool/
-.packages
-build/
-*.g.dart
-*.freezed.dart
-```
-
-### Ограничения текущей системы авторизации:
-
-Пароли хранятся в открытом виде в Google Таблице. Это приемлемо для небольшой доверенной команды, но не подходит для публичного использования. Для повышения безопасности можно перейти на хранение хэшей паролей (SHA-256).
+При желании перейти на публичный доступ — заменить PocketBase на HTTPS-прокси и включить
+строгие правила (rules) коллекций для доступа по ролям.
 
 ---
 
@@ -626,30 +552,13 @@ build/
 
 | Фича | Сложность | Описание |
 |---|---|---|
-| Хэширование паролей | Низкая | Хранить SHA-256 вместо открытого текста |
-| Push-уведомления | Высокая | Firebase Cloud Messaging — уведомить завуча о новой вычитке |
-| Экспорт в PDF | Средняя | Генерация бланка вычитки для печати |
-| История изменений | Средняя | Отдельный лист `Лог` со всеми правками |
-| Офлайн-режим | Высокая | SQLite кэш + синхронизация при появлении сети |
-| Веб-версия | Низкая | Flutter Web — тот же код, другая платформа |
-| Telegram-бот для завуча | Средняя | Уведомления о новых вычитках в Telegram |
-| Запланированные часы | Средняя | Сравнение вычитанного с запланированным |
-
----
-
-## Учебный год и навигация по месяцам
-
-Учебный год в колледже идёт с **сентября** по **август**. Порядок месяцев в приложении:
-
-```dart
-static const months = [
-  'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',  // осень-зима
-  'Январь', 'Февраль', 'Март', 'Апрель',          // весна
-  'Май', 'Июнь', 'Июль', 'Август',                // лето
-];
-```
-
-При отображении текущий месяц определяется автоматически через `DateTime.now()`.
+| Экран создания пользователей/назначений | Средняя | UI для admin вместо ручного засева |
+| Экран «Ход заполнения» для завуча | Средняя | сравнение вычитанного с запланированным |
+| Экспорт в PDF | Средняя | генерация бланка вычитки для печати |
+| История изменений | Средняя | коллекция «Лог» со всеми правками |
+| Push / Telegram-уведомления | Высокая | оповещение завуча о новых вычитках |
+| Строгие правила доступов | Средняя | rules коллекций по ролям для публичного доступа |
+| Офлайн-режим | Высокая | локальный кэш + синхронизация |
 
 ---
 

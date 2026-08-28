@@ -23,19 +23,39 @@ class HoursInputField extends StatefulWidget {
 
 class _HoursInputFieldState extends State<HoursInputField> {
   late final TextEditingController _ctrl;
+  final _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(
-        text: widget.value == 0 ? '' : widget.value.toString());
+    _ctrl = TextEditingController(text: _format(widget.value));
+    _focusNode.addListener(_syncFromWidget);
+  }
+
+  @override
+  void didUpdateWidget(HoursInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncFromWidget();
+  }
+
+  void _syncFromWidget() {
+    // Если значение изменилось извне (например, после повторной загрузки
+    // месяца) и поле не в фокусе — синхронизируем контроллер, чтобы не
+    // показывать устаревшие данные.
+    if (!_focusNode.hasFocus && _ctrl.text != _format(widget.value)) {
+      _ctrl.text = _format(widget.value);
+    }
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_syncFromWidget);
+    _focusNode.dispose();
     _ctrl.dispose();
     super.dispose();
   }
+
+  String _format(double v) => v == 0 ? '' : v.toString();
 
   String? _validate(String? v) {
     if (v == null || v.isEmpty) return null; // 0 часов — допустимо
@@ -50,6 +70,7 @@ class _HoursInputFieldState extends State<HoursInputField> {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: _ctrl,
+      focusNode: _focusNode,
       enabled: widget.enabled,
       validator: _validate,
       decoration: InputDecoration(

@@ -7,8 +7,8 @@ import '../../../injection.dart';
 import '../../../shared/widgets/month_status_card.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../auth/cubit/auth_state.dart';
-import '../cubit/vychitka_cubit.dart';
 import '../models/vychitka_entry.dart';
+import '../repository/vychitka_repository.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -40,19 +40,21 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       _error = null;
     });
     try {
-      final statuses = await VychitkaCubit(getIt())
-          .loadAllMonthStatuses(_teacher, _academicYear);
-      if (mounted)
+      final statuses = await getIt<VychitkaRepository>()
+          .getMonthStatusesForYear(_teacher, _academicYear);
+      if (mounted) {
         setState(() {
           _statuses = statuses;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 

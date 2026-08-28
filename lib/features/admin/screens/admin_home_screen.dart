@@ -83,7 +83,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 SizedBox(
                   width: 140,
                   child: DropdownButtonFormField<int>(
-                    value: _academicYear,
+                    initialValue: _academicYear,
                     decoration: const InputDecoration(labelText: 'Уч. год'),
                     items: List.generate(3, (i) => _academicYear - 1 + i)
                         .map((y) => DropdownMenuItem(
@@ -103,7 +103,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 // Выбор месяца
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedMonth,
+                    initialValue: _selectedMonth,
                     decoration: const InputDecoration(labelText: 'Месяц'),
                     items: AppConstants.months
                         .map((m) => DropdownMenuItem(
