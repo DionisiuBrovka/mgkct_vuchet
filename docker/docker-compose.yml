@@ -1,0 +1,18 @@
+# docker compose -f docker/docker-compose.yml up -d --build
+services:
+  mgkct:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: mgkct_vuchet:latest
+    container_name: mgkct
+    restart: unless-stopped
+    ports:
+      # хост:контейнер — 8090 наружу, доступ по локальной сети
+      - "8090:8090"
+    volumes:
+      # именованный том для базы и файлов PocketBase (переживает пересоздание контейнера)
+      - mgkct_data:/pb/pb_data
+
+volumes:
+  mgkct_data:
