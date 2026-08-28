@@ -100,17 +100,11 @@ docker run --rm -v mgkct_data:/pb/pb_data -v /backup:/backup alpine \
   cp /pb/pb_data/data.db /backup/mgkct_$(date +%F).db
 ```
 
-> **Проверка сборки локально на podman.** `podman compose` использует внешний
-> провайдер `docker-compose`, которому нужен API-сокет podman (в rootless он
-> обычно не поднят). Для локальной проверки образа удобнее напрямую:
-> ```bash
-> podman build -f docker/Dockerfile -t mgkct_vuchet:latest .
-> podman run -d --name mgkct-test -p 8090:8090 \
->   -v mgkct_data:/pb/pb_data mgkct_vuchet:latest
-> curl http://localhost:8090/api/health
-> ```
-> Образ, собранный podman, полностью совместим с Docker — на проде используйте
-> `docker compose up -d --build` (там API-сокет есть всегда).
+> **Локально на podman.** `build.sh` сам определяет движок: для `podman` он
+> использует прямые `podman build`/`podman run` (в обход `podman compose`, чей
+> внешний провайдер в rootless не работает), для `docker` — `docker compose`.
+> Образ, собранный podman, полностью совместим с Docker — на проде достаточно
+> `bash docker/build.sh` или `docker compose up -d --build`.
 
 Данные хранятся в Docker-томе `mgkct_data` — они переживают пересоздание
 контейнера. Для переноса на другой сервер скопируйте/экспортируйте этот том
