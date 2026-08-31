@@ -3,7 +3,7 @@ import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../shared/widgets/status_badge.dart';
-import '../../../shared/hour_descriptions.dart';
+import '../widgets/review_assignment_card.dart';
 import '../../teacher/models/teaching_report_entry.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
@@ -75,131 +75,131 @@ class _ReviewScreenState extends State<ReviewScreen> {
           };
           final currentStatus = loaded.report.status;
 
-          return Stack(
-            children: [
-              ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+          return Center(
+            child: SizedBox(
+              width: 1100,
+              child: Stack(
                 children: [
-                  ScreenHint(
-                    title: currentStatus == TeachingReportStatus.submitted
-                        ? 'Проверьте часы и замены'
-                        : 'Отчёт подтверждён',
-                    message: currentStatus == TeachingReportStatus.submitted
-                        ? 'Сверьте часы по назначениям и замены ниже. «Вернуть» снова откроет редактирование преподавателю. «Подтвердить» окончательно примет отчёт — изменить его через приложение будет нельзя.'
-                        : 'Это принятый отчёт. Здесь можно посмотреть часы и замены, но изменить их или вернуть отчёт уже нельзя.',
-                  ),
-                  Text(loaded.report.teacherName,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Row(children: [
-                    const Text('Статус: '),
-                    StatusBadge(currentStatus),
-                  ]),
-                  const SizedBox(height: 16),
-                  const Text('Назначения',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  ...entries.map((e) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(children: [
-                          Expanded(
-                              child: Text(
-                                  '${e.subject} · гр. ${e.group}\nЛек: ${e.lectureHours}; ЛР/ПР: ${e.practicalHours}; КП: ${e.courseProjectHours}\nКонс: ${e.consultationHours}; Доп.к: ${e.additionalAssessmentHours}; Экз: ${e.examHours}')),
-                          Text('${e.totalHours} ч',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600)),
-                        ]),
-                      )),
-                  const Divider(height: 32),
-                  const Text('Итого по назначениям',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Table(
-                    border: TableBorder.all(color: Colors.grey.shade300),
+                  ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
                     children: [
-                      TableRow(
-                        decoration: BoxDecoration(color: Colors.grey.shade100),
-                        children: totals.keys
-                            .map((k) => Tooltip(
-                                message: hourDescriptions[k] ?? k,
-                                child: _cell(k, bold: true)))
-                            .toList(),
+                      ScreenHint(
+                        title: currentStatus == TeachingReportStatus.submitted
+                            ? 'Проверьте часы и замены'
+                            : 'Отчёт подтверждён',
+                        message: currentStatus == TeachingReportStatus.submitted
+                            ? 'Сверьте часы по назначениям и замены ниже. «Вернуть» снова откроет редактирование преподавателю. «Подтвердить» окончательно примет отчёт — изменить его через приложение будет нельзя.'
+                            : 'Это принятый отчёт. Здесь можно посмотреть часы и замены, но изменить их или вернуть отчёт уже нельзя.',
                       ),
-                      TableRow(
-                        children: totals.values
-                            .map((v) => _cell(v.toString()))
-                            .toList(),
+                      Text(loaded.report.teacherName,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Row(children: [
+                        const Text('Статус: '),
+                        StatusBadge(currentStatus),
+                      ]),
+                      const SizedBox(height: 10),
+                      Text('Назначения · ${entries.length}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      Text(
+                          'Часы по каждому предмету и группе. Заполненные виды нагрузки выделены цветом.',
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
+                      const SizedBox(height: 10),
+                      if (entries.isEmpty)
+                        const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                                'Назначений в отчёте нет. Проверьте замены ниже.')),
+                      ...entries
+                          .map((entry) => ReviewAssignmentCard(entry: entry)),
+                      const SizedBox(height: 8),
+                      Card.filled(
+                        color: const Color.fromARGB(255, 156, 216, 171),
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Итого по назначениям',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 4),
+                              Text(
+                                  '${formatReviewHours(totals.values.fold<num>(0, (sum, hours) => sum + hours))} ч · без учёта замен',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                              const SizedBox(height: 10),
+                              ReviewHoursBreakdown(values: totals),
+                            ],
+                          ),
+                        ),
                       ),
+                      if (substitutions.isEmpty)
+                        const Padding(
+                            padding: EdgeInsets.only(top: 24),
+                            child: Text('Замены за этот месяц не указаны.')),
+                      if (substitutions.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        Text(
+                            'Замены · ${loaded.report.totals['substitutionHours'] ?? 0} ч',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 8),
+                        ...substitutions.map((substitution) => Text(
+                            '${substitution.date} · гр. ${substitution.group} · ${substitution.hours} ч')),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                      hourDescriptions.entries
-                          .map((e) => '${e.key} — ${e.value.toLowerCase()}')
-                          .join('; '),
-                      style: Theme.of(context).textTheme.bodySmall),
-                  if (substitutions.isEmpty)
-                    const Padding(
-                        padding: EdgeInsets.only(top: 24),
-                        child: Text('Замены за этот месяц не указаны.')),
-                  if (substitutions.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                        'Замены · ${loaded.report.totals['substitutionHours'] ?? 0} ч',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    ...substitutions.map((substitution) => Text(
-                        '${substitution.date} · гр. ${substitution.group} · ${substitution.hours} ч')),
-                  ],
+                  if (currentStatus == TeachingReportStatus.submitted)
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: loaded.isUpdating
+                                  ? null
+                                  : () => context.read<AdminCubit>().reject(),
+                              child: const Text('↩ Вернуть'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: loaded.isUpdating
+                                  ? null
+                                  : () => context.read<AdminCubit>().confirm(),
+                              child: loaded.isUpdating
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white))
+                                  : const Text('✓ Подтвердить'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
-              if (currentStatus == TeachingReportStatus.submitted)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 16,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: loaded.isUpdating
-                              ? null
-                              : () => context.read<AdminCubit>().reject(),
-                          child: const Text('↩ Вернуть'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: loaded.isUpdating
-                              ? null
-                              : () => context.read<AdminCubit>().confirm(),
-                          child: loaded.isUpdating
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white))
-                              : const Text('✓ Подтвердить'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
+            ),
           );
         },
       ),
     );
   }
-
-  Widget _cell(String text, {bool bold = false}) => Padding(
-        padding: const EdgeInsets.all(8),
-        child: Text(text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
-      );
 }
