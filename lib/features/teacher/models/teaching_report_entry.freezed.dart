@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'vychitka_entry.dart';
+part of 'teaching_report_entry.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -15,7 +15,7 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
-mixin _$VychitkaEntry {
+mixin _$TeachingReportEntry {
   String get id => throw _privateConstructorUsedError;
   String get teacher => throw _privateConstructorUsedError;
   String get month => throw _privateConstructorUsedError;
@@ -23,29 +23,29 @@ mixin _$VychitkaEntry {
   String get subject => throw _privateConstructorUsedError;
   String get group => throw _privateConstructorUsedError;
   String get assignmentId => throw _privateConstructorUsedError;
-  double get lek => throw _privateConstructorUsedError;
-  double get lrPr => throw _privateConstructorUsedError;
-  double get kp => throw _privateConstructorUsedError;
-  double get cons => throw _privateConstructorUsedError;
-  double get dopKontr => throw _privateConstructorUsedError;
-  double get ekz => throw _privateConstructorUsedError;
-  VychitkaStatus get status => throw _privateConstructorUsedError;
+  double get lectureHours => throw _privateConstructorUsedError;
+  double get practicalHours => throw _privateConstructorUsedError;
+  double get courseProjectHours => throw _privateConstructorUsedError;
+  double get consultationHours => throw _privateConstructorUsedError;
+  double get additionalAssessmentHours => throw _privateConstructorUsedError;
+  double get examHours => throw _privateConstructorUsedError;
+  TeachingReportStatus get status => throw _privateConstructorUsedError;
   DateTime? get submittedAt => throw _privateConstructorUsedError;
   DateTime? get confirmedAt => throw _privateConstructorUsedError;
   String? get confirmedBy => throw _privateConstructorUsedError;
 
-  /// Create a copy of VychitkaEntry
+  /// Create a copy of TeachingReportEntry
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $VychitkaEntryCopyWith<VychitkaEntry> get copyWith =>
+  $TeachingReportEntryCopyWith<TeachingReportEntry> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $VychitkaEntryCopyWith<$Res> {
-  factory $VychitkaEntryCopyWith(
-          VychitkaEntry value, $Res Function(VychitkaEntry) then) =
-      _$VychitkaEntryCopyWithImpl<$Res, VychitkaEntry>;
+abstract class $TeachingReportEntryCopyWith<$Res> {
+  factory $TeachingReportEntryCopyWith(
+          TeachingReportEntry value, $Res Function(TeachingReportEntry) then) =
+      _$TeachingReportEntryCopyWithImpl<$Res, TeachingReportEntry>;
   @useResult
   $Res call(
       {String id,
@@ -55,29 +55,29 @@ abstract class $VychitkaEntryCopyWith<$Res> {
       String subject,
       String group,
       String assignmentId,
-      double lek,
-      double lrPr,
-      double kp,
-      double cons,
-      double dopKontr,
-      double ekz,
-      VychitkaStatus status,
+      double lectureHours,
+      double practicalHours,
+      double courseProjectHours,
+      double consultationHours,
+      double additionalAssessmentHours,
+      double examHours,
+      TeachingReportStatus status,
       DateTime? submittedAt,
       DateTime? confirmedAt,
       String? confirmedBy});
 }
 
 /// @nodoc
-class _$VychitkaEntryCopyWithImpl<$Res, $Val extends VychitkaEntry>
-    implements $VychitkaEntryCopyWith<$Res> {
-  _$VychitkaEntryCopyWithImpl(this._value, this._then);
+class _$TeachingReportEntryCopyWithImpl<$Res, $Val extends TeachingReportEntry>
+    implements $TeachingReportEntryCopyWith<$Res> {
+  _$TeachingReportEntryCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of VychitkaEntry
+  /// Create a copy of TeachingReportEntry
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -89,12 +89,12 @@ class _$VychitkaEntryCopyWithImpl<$Res, $Val extends VychitkaEntry>
     Object? subject = null,
     Object? group = null,
     Object? assignmentId = null,
-    Object? lek = null,
-    Object? lrPr = null,
-    Object? kp = null,
-    Object? cons = null,
-    Object? dopKontr = null,
-    Object? ekz = null,
+    Object? lectureHours = null,
+    Object? practicalHours = null,
+    Object? courseProjectHours = null,
+    Object? consultationHours = null,
+    Object? additionalAssessmentHours = null,
+    Object? examHours = null,
     Object? status = null,
     Object? submittedAt = freezed,
     Object? confirmedAt = freezed,
@@ -129,34 +129,34 @@ class _$VychitkaEntryCopyWithImpl<$Res, $Val extends VychitkaEntry>
           ? _value.assignmentId
           : assignmentId // ignore: cast_nullable_to_non_nullable
               as String,
-      lek: null == lek
-          ? _value.lek
-          : lek // ignore: cast_nullable_to_non_nullable
+      lectureHours: null == lectureHours
+          ? _value.lectureHours
+          : lectureHours // ignore: cast_nullable_to_non_nullable
               as double,
-      lrPr: null == lrPr
-          ? _value.lrPr
-          : lrPr // ignore: cast_nullable_to_non_nullable
+      practicalHours: null == practicalHours
+          ? _value.practicalHours
+          : practicalHours // ignore: cast_nullable_to_non_nullable
               as double,
-      kp: null == kp
-          ? _value.kp
-          : kp // ignore: cast_nullable_to_non_nullable
+      courseProjectHours: null == courseProjectHours
+          ? _value.courseProjectHours
+          : courseProjectHours // ignore: cast_nullable_to_non_nullable
               as double,
-      cons: null == cons
-          ? _value.cons
-          : cons // ignore: cast_nullable_to_non_nullable
+      consultationHours: null == consultationHours
+          ? _value.consultationHours
+          : consultationHours // ignore: cast_nullable_to_non_nullable
               as double,
-      dopKontr: null == dopKontr
-          ? _value.dopKontr
-          : dopKontr // ignore: cast_nullable_to_non_nullable
+      additionalAssessmentHours: null == additionalAssessmentHours
+          ? _value.additionalAssessmentHours
+          : additionalAssessmentHours // ignore: cast_nullable_to_non_nullable
               as double,
-      ekz: null == ekz
-          ? _value.ekz
-          : ekz // ignore: cast_nullable_to_non_nullable
+      examHours: null == examHours
+          ? _value.examHours
+          : examHours // ignore: cast_nullable_to_non_nullable
               as double,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
-              as VychitkaStatus,
+              as TeachingReportStatus,
       submittedAt: freezed == submittedAt
           ? _value.submittedAt
           : submittedAt // ignore: cast_nullable_to_non_nullable
@@ -174,11 +174,11 @@ class _$VychitkaEntryCopyWithImpl<$Res, $Val extends VychitkaEntry>
 }
 
 /// @nodoc
-abstract class _$$VychitkaEntryImplCopyWith<$Res>
-    implements $VychitkaEntryCopyWith<$Res> {
-  factory _$$VychitkaEntryImplCopyWith(
-          _$VychitkaEntryImpl value, $Res Function(_$VychitkaEntryImpl) then) =
-      __$$VychitkaEntryImplCopyWithImpl<$Res>;
+abstract class _$$TeachingReportEntryImplCopyWith<$Res>
+    implements $TeachingReportEntryCopyWith<$Res> {
+  factory _$$TeachingReportEntryImplCopyWith(_$TeachingReportEntryImpl value,
+          $Res Function(_$TeachingReportEntryImpl) then) =
+      __$$TeachingReportEntryImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
@@ -189,27 +189,27 @@ abstract class _$$VychitkaEntryImplCopyWith<$Res>
       String subject,
       String group,
       String assignmentId,
-      double lek,
-      double lrPr,
-      double kp,
-      double cons,
-      double dopKontr,
-      double ekz,
-      VychitkaStatus status,
+      double lectureHours,
+      double practicalHours,
+      double courseProjectHours,
+      double consultationHours,
+      double additionalAssessmentHours,
+      double examHours,
+      TeachingReportStatus status,
       DateTime? submittedAt,
       DateTime? confirmedAt,
       String? confirmedBy});
 }
 
 /// @nodoc
-class __$$VychitkaEntryImplCopyWithImpl<$Res>
-    extends _$VychitkaEntryCopyWithImpl<$Res, _$VychitkaEntryImpl>
-    implements _$$VychitkaEntryImplCopyWith<$Res> {
-  __$$VychitkaEntryImplCopyWithImpl(
-      _$VychitkaEntryImpl _value, $Res Function(_$VychitkaEntryImpl) _then)
+class __$$TeachingReportEntryImplCopyWithImpl<$Res>
+    extends _$TeachingReportEntryCopyWithImpl<$Res, _$TeachingReportEntryImpl>
+    implements _$$TeachingReportEntryImplCopyWith<$Res> {
+  __$$TeachingReportEntryImplCopyWithImpl(_$TeachingReportEntryImpl _value,
+      $Res Function(_$TeachingReportEntryImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of VychitkaEntry
+  /// Create a copy of TeachingReportEntry
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -221,18 +221,18 @@ class __$$VychitkaEntryImplCopyWithImpl<$Res>
     Object? subject = null,
     Object? group = null,
     Object? assignmentId = null,
-    Object? lek = null,
-    Object? lrPr = null,
-    Object? kp = null,
-    Object? cons = null,
-    Object? dopKontr = null,
-    Object? ekz = null,
+    Object? lectureHours = null,
+    Object? practicalHours = null,
+    Object? courseProjectHours = null,
+    Object? consultationHours = null,
+    Object? additionalAssessmentHours = null,
+    Object? examHours = null,
     Object? status = null,
     Object? submittedAt = freezed,
     Object? confirmedAt = freezed,
     Object? confirmedBy = freezed,
   }) {
-    return _then(_$VychitkaEntryImpl(
+    return _then(_$TeachingReportEntryImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
@@ -261,34 +261,34 @@ class __$$VychitkaEntryImplCopyWithImpl<$Res>
           ? _value.assignmentId
           : assignmentId // ignore: cast_nullable_to_non_nullable
               as String,
-      lek: null == lek
-          ? _value.lek
-          : lek // ignore: cast_nullable_to_non_nullable
+      lectureHours: null == lectureHours
+          ? _value.lectureHours
+          : lectureHours // ignore: cast_nullable_to_non_nullable
               as double,
-      lrPr: null == lrPr
-          ? _value.lrPr
-          : lrPr // ignore: cast_nullable_to_non_nullable
+      practicalHours: null == practicalHours
+          ? _value.practicalHours
+          : practicalHours // ignore: cast_nullable_to_non_nullable
               as double,
-      kp: null == kp
-          ? _value.kp
-          : kp // ignore: cast_nullable_to_non_nullable
+      courseProjectHours: null == courseProjectHours
+          ? _value.courseProjectHours
+          : courseProjectHours // ignore: cast_nullable_to_non_nullable
               as double,
-      cons: null == cons
-          ? _value.cons
-          : cons // ignore: cast_nullable_to_non_nullable
+      consultationHours: null == consultationHours
+          ? _value.consultationHours
+          : consultationHours // ignore: cast_nullable_to_non_nullable
               as double,
-      dopKontr: null == dopKontr
-          ? _value.dopKontr
-          : dopKontr // ignore: cast_nullable_to_non_nullable
+      additionalAssessmentHours: null == additionalAssessmentHours
+          ? _value.additionalAssessmentHours
+          : additionalAssessmentHours // ignore: cast_nullable_to_non_nullable
               as double,
-      ekz: null == ekz
-          ? _value.ekz
-          : ekz // ignore: cast_nullable_to_non_nullable
+      examHours: null == examHours
+          ? _value.examHours
+          : examHours // ignore: cast_nullable_to_non_nullable
               as double,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
-              as VychitkaStatus,
+              as TeachingReportStatus,
       submittedAt: freezed == submittedAt
           ? _value.submittedAt
           : submittedAt // ignore: cast_nullable_to_non_nullable
@@ -307,8 +307,8 @@ class __$$VychitkaEntryImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$VychitkaEntryImpl extends _VychitkaEntry {
-  const _$VychitkaEntryImpl(
+class _$TeachingReportEntryImpl extends _TeachingReportEntry {
+  const _$TeachingReportEntryImpl(
       {required this.id,
       required this.teacher,
       required this.month,
@@ -316,13 +316,13 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
       required this.subject,
       required this.group,
       this.assignmentId = '',
-      this.lek = 0,
-      this.lrPr = 0,
-      this.kp = 0,
-      this.cons = 0,
-      this.dopKontr = 0,
-      this.ekz = 0,
-      this.status = VychitkaStatus.draft,
+      this.lectureHours = 0,
+      this.practicalHours = 0,
+      this.courseProjectHours = 0,
+      this.consultationHours = 0,
+      this.additionalAssessmentHours = 0,
+      this.examHours = 0,
+      this.status = TeachingReportStatus.draft,
       this.submittedAt,
       this.confirmedAt,
       this.confirmedBy})
@@ -345,25 +345,25 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
   final String assignmentId;
   @override
   @JsonKey()
-  final double lek;
+  final double lectureHours;
   @override
   @JsonKey()
-  final double lrPr;
+  final double practicalHours;
   @override
   @JsonKey()
-  final double kp;
+  final double courseProjectHours;
   @override
   @JsonKey()
-  final double cons;
+  final double consultationHours;
   @override
   @JsonKey()
-  final double dopKontr;
+  final double additionalAssessmentHours;
   @override
   @JsonKey()
-  final double ekz;
+  final double examHours;
   @override
   @JsonKey()
-  final VychitkaStatus status;
+  final TeachingReportStatus status;
   @override
   final DateTime? submittedAt;
   @override
@@ -373,14 +373,14 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
 
   @override
   String toString() {
-    return 'VychitkaEntry(id: $id, teacher: $teacher, month: $month, year: $year, subject: $subject, group: $group, assignmentId: $assignmentId, lek: $lek, lrPr: $lrPr, kp: $kp, cons: $cons, dopKontr: $dopKontr, ekz: $ekz, status: $status, submittedAt: $submittedAt, confirmedAt: $confirmedAt, confirmedBy: $confirmedBy)';
+    return 'TeachingReportEntry(id: $id, teacher: $teacher, month: $month, year: $year, subject: $subject, group: $group, assignmentId: $assignmentId, lectureHours: $lectureHours, practicalHours: $practicalHours, courseProjectHours: $courseProjectHours, consultationHours: $consultationHours, additionalAssessmentHours: $additionalAssessmentHours, examHours: $examHours, status: $status, submittedAt: $submittedAt, confirmedAt: $confirmedAt, confirmedBy: $confirmedBy)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$VychitkaEntryImpl &&
+            other is _$TeachingReportEntryImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.teacher, teacher) || other.teacher == teacher) &&
             (identical(other.month, month) || other.month == month) &&
@@ -389,13 +389,19 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
             (identical(other.group, group) || other.group == group) &&
             (identical(other.assignmentId, assignmentId) ||
                 other.assignmentId == assignmentId) &&
-            (identical(other.lek, lek) || other.lek == lek) &&
-            (identical(other.lrPr, lrPr) || other.lrPr == lrPr) &&
-            (identical(other.kp, kp) || other.kp == kp) &&
-            (identical(other.cons, cons) || other.cons == cons) &&
-            (identical(other.dopKontr, dopKontr) ||
-                other.dopKontr == dopKontr) &&
-            (identical(other.ekz, ekz) || other.ekz == ekz) &&
+            (identical(other.lectureHours, lectureHours) ||
+                other.lectureHours == lectureHours) &&
+            (identical(other.practicalHours, practicalHours) ||
+                other.practicalHours == practicalHours) &&
+            (identical(other.courseProjectHours, courseProjectHours) ||
+                other.courseProjectHours == courseProjectHours) &&
+            (identical(other.consultationHours, consultationHours) ||
+                other.consultationHours == consultationHours) &&
+            (identical(other.additionalAssessmentHours,
+                    additionalAssessmentHours) ||
+                other.additionalAssessmentHours == additionalAssessmentHours) &&
+            (identical(other.examHours, examHours) ||
+                other.examHours == examHours) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.submittedAt, submittedAt) ||
                 other.submittedAt == submittedAt) &&
@@ -415,28 +421,29 @@ class _$VychitkaEntryImpl extends _VychitkaEntry {
       subject,
       group,
       assignmentId,
-      lek,
-      lrPr,
-      kp,
-      cons,
-      dopKontr,
-      ekz,
+      lectureHours,
+      practicalHours,
+      courseProjectHours,
+      consultationHours,
+      additionalAssessmentHours,
+      examHours,
       status,
       submittedAt,
       confirmedAt,
       confirmedBy);
 
-  /// Create a copy of VychitkaEntry
+  /// Create a copy of TeachingReportEntry
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$VychitkaEntryImplCopyWith<_$VychitkaEntryImpl> get copyWith =>
-      __$$VychitkaEntryImplCopyWithImpl<_$VychitkaEntryImpl>(this, _$identity);
+  _$$TeachingReportEntryImplCopyWith<_$TeachingReportEntryImpl> get copyWith =>
+      __$$TeachingReportEntryImplCopyWithImpl<_$TeachingReportEntryImpl>(
+          this, _$identity);
 }
 
-abstract class _VychitkaEntry extends VychitkaEntry {
-  const factory _VychitkaEntry(
+abstract class _TeachingReportEntry extends TeachingReportEntry {
+  const factory _TeachingReportEntry(
       {required final String id,
       required final String teacher,
       required final String month,
@@ -444,17 +451,17 @@ abstract class _VychitkaEntry extends VychitkaEntry {
       required final String subject,
       required final String group,
       final String assignmentId,
-      final double lek,
-      final double lrPr,
-      final double kp,
-      final double cons,
-      final double dopKontr,
-      final double ekz,
-      final VychitkaStatus status,
+      final double lectureHours,
+      final double practicalHours,
+      final double courseProjectHours,
+      final double consultationHours,
+      final double additionalAssessmentHours,
+      final double examHours,
+      final TeachingReportStatus status,
       final DateTime? submittedAt,
       final DateTime? confirmedAt,
-      final String? confirmedBy}) = _$VychitkaEntryImpl;
-  const _VychitkaEntry._() : super._();
+      final String? confirmedBy}) = _$TeachingReportEntryImpl;
+  const _TeachingReportEntry._() : super._();
 
   @override
   String get id;
@@ -471,19 +478,19 @@ abstract class _VychitkaEntry extends VychitkaEntry {
   @override
   String get assignmentId;
   @override
-  double get lek;
+  double get lectureHours;
   @override
-  double get lrPr;
+  double get practicalHours;
   @override
-  double get kp;
+  double get courseProjectHours;
   @override
-  double get cons;
+  double get consultationHours;
   @override
-  double get dopKontr;
+  double get additionalAssessmentHours;
   @override
-  double get ekz;
+  double get examHours;
   @override
-  VychitkaStatus get status;
+  TeachingReportStatus get status;
   @override
   DateTime? get submittedAt;
   @override
@@ -491,10 +498,10 @@ abstract class _VychitkaEntry extends VychitkaEntry {
   @override
   String? get confirmedBy;
 
-  /// Create a copy of VychitkaEntry
+  /// Create a copy of TeachingReportEntry
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$VychitkaEntryImplCopyWith<_$VychitkaEntryImpl> get copyWith =>
+  _$$TeachingReportEntryImplCopyWith<_$TeachingReportEntryImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

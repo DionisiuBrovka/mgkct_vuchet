@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../auth/cubit/auth_state.dart';
-import '../../teacher/models/vychitka_entry.dart';
+import '../../teacher/models/teaching_report_entry.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
 
@@ -41,8 +41,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.teacher}\n${widget.month} ${widget.year}',
-            maxLines: 2,
-            style: const TextStyle(fontSize: 14)),
+            maxLines: 2, style: const TextStyle(fontSize: 14)),
       ),
       body: BlocConsumer<AdminCubit, AdminState>(
         listener: (ctx, state) {
@@ -54,7 +53,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
             // After confirm/reject navigate back
             final entries = state.entries;
             if (entries.isNotEmpty &&
-                entries.first.status != VychitkaStatus.submitted) {
+                entries.first.status != TeachingReportStatus.submitted) {
               Navigator.of(ctx).pop(true);
             }
           }
@@ -68,19 +67,20 @@ class _ReviewScreenState extends State<ReviewScreen> {
           }
           final loaded = state as AdminReviewLoaded;
           final entries = loaded.entries;
-          final zameny = loaded.zameny;
+          final substitutions = loaded.substitutions;
 
           final totals = <String, double>{
-            'Лек': entries.fold(0, (s, e) => s + e.lek),
-            'ЛР/ПР': entries.fold(0, (s, e) => s + e.lrPr),
-            'КП': entries.fold(0, (s, e) => s + e.kp),
-            'Конс': entries.fold(0, (s, e) => s + e.cons),
-            'Доп.к': entries.fold(0, (s, e) => s + e.dopKontr),
-            'Экз': entries.fold(0, (s, e) => s + e.ekz),
+            'Лек': entries.fold(0, (s, e) => s + e.lectureHours),
+            'ЛР/ПР': entries.fold(0, (s, e) => s + e.practicalHours),
+            'КП': entries.fold(0, (s, e) => s + e.courseProjectHours),
+            'Конс': entries.fold(0, (s, e) => s + e.consultationHours),
+            'Доп.к': entries.fold(0, (s, e) => s + e.additionalAssessmentHours),
+            'Экз': entries.fold(0, (s, e) => s + e.examHours),
           };
 
-          final currentStatus =
-              entries.isNotEmpty ? entries.first.status : VychitkaStatus.draft;
+          final currentStatus = entries.isNotEmpty
+              ? entries.first.status
+              : TeachingReportStatus.draft;
 
           return Stack(
             children: [
@@ -93,15 +93,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   ]),
                   const SizedBox(height: 16),
                   const Text('Назначения',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   ...entries.map((e) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(children: [
                           Expanded(
-                              child: Text(
-                                  '${e.subject} · гр. ${e.group}')),
+                              child: Text('${e.subject} · гр. ${e.group}')),
                           Text('${e.totalHours} ч',
                               style:
                                   const TextStyle(fontWeight: FontWeight.w600)),
@@ -109,15 +108,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       )),
                   const Divider(height: 32),
                   const Text('Итого',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   Table(
                     border: TableBorder.all(color: Colors.grey.shade300),
                     children: [
                       TableRow(
-                        decoration:
-                            BoxDecoration(color: Colors.grey.shade100),
+                        decoration: BoxDecoration(color: Colors.grey.shade100),
                         children: totals.keys
                             .map((k) => _cell(k, bold: true))
                             .toList(),
@@ -129,18 +127,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       ),
                     ],
                   ),
-                  if (zameny.isNotEmpty) ...[
+                  if (substitutions.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     const Text('Замены',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
-                    ...zameny.map((z) =>
-                        Text('${z.date} · гр. ${z.group} · ${z.hours} ч')),
+                    ...substitutions.map((substitution) => Text(
+                        '${substitution.date} · гр. ${substitution.group} · ${substitution.hours} ч')),
                   ],
                 ],
               ),
-              if (currentStatus == VychitkaStatus.submitted)
+              if (currentStatus == TeachingReportStatus.submitted)
                 Positioned(
                   left: 16,
                   right: 16,
@@ -151,10 +149,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         child: OutlinedButton(
                           onPressed: loaded.isUpdating
                               ? null
-                              : () => context
-                                  .read<AdminCubit>()
-                                  .reject(widget.teacher, widget.month,
-                                      widget.year),
+                              : () => context.read<AdminCubit>().reject(
+                                  widget.teacher, widget.month, widget.year),
                           child: const Text('↩ Вернуть'),
                         ),
                       ),
@@ -174,8 +170,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                   width: 16,
                                   height: 16,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white))
+                                      strokeWidth: 2, color: Colors.white))
                               : const Text('✓ Подтвердить'),
                         ),
                       ),

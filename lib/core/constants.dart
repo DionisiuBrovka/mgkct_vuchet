@@ -8,8 +8,8 @@ class AppConstants {
   static const usersColl = 'users';
   static const profilesColl = 'user_profiles';
   static const assignmentsColl = 'assignments';
-  static const vychitkiColl = 'vychitki';
-  static const zamenyColl = 'zameny';
+  static const teachingReportEntriesColl = 'teaching_report_entries';
+  static const substitutionsColl = 'substitutions';
 
   // Учебный год: сентябрь–июль (11 месяцев)
   static const months = [

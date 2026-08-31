@@ -9,8 +9,8 @@ import 'features/auth/cubit/auth_cubit.dart';
 import 'features/auth/cubit/auth_state.dart';
 import 'features/auth/models/app_user.dart';
 import 'features/auth/screens/login_screen.dart';
-import 'features/teacher/cubit/vychitka_cubit.dart';
-import 'features/teacher/screens/fill_vychitka_screen.dart';
+import 'features/teacher/cubit/teaching_report_cubit.dart';
+import 'features/teacher/screens/fill_teaching_report_screen.dart';
 import 'features/teacher/screens/teacher_home_screen.dart';
 import 'injection.dart';
 import 'shared/theme/app_theme.dart';
@@ -41,9 +41,7 @@ class _AppState extends State<App> {
           return isLoginRoute ? null : '/login';
         }
         if (isLoginRoute) {
-          return authState.user.role == UserRole.admin
-              ? '/admin'
-              : '/teacher';
+          return authState.user.role == UserRole.admin ? '/admin' : '/teacher';
         }
         return null;
       },
@@ -60,8 +58,8 @@ class _AppState extends State<App> {
             GoRoute(
               path: 'fill/:month/:year',
               builder: (_, state) => BlocProvider(
-                create: (_) => VychitkaCubit(getIt()),
-                child: FillVychitkaScreen(
+                create: (_) => TeachingReportCubit(getIt()),
+                child: FillTeachingReportScreen(
                   month: state.pathParameters['month']!,
                   year: int.parse(state.pathParameters['year']!),
                 ),

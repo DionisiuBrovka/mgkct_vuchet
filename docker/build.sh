@@ -11,7 +11,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # ── Общие параметры ─────────────────────────────────────────
-IMAGE="mgkct_vuchet:latest"
+IMAGE="mgkct_teaching_hours:latest"
 CONTAINER="mgkct"
 VOLUME="mgkct_data"
 PORT="8090"

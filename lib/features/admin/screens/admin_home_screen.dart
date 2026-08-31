@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../auth/cubit/auth_cubit.dart';
-import '../../teacher/models/vychitka_entry.dart';
+import '../../teacher/models/teaching_report_entry.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
 
@@ -40,16 +40,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   String _monthNumToRu(int m) {
     const map = {
-      1: 'Январь', 2: 'Февраль', 3: 'Март', 4: 'Апрель',
-      5: 'Май', 6: 'Июнь', 7: 'Июль',
-      9: 'Сентябрь', 10: 'Октябрь', 11: 'Ноябрь', 12: 'Декабрь',
+      1: 'Январь',
+      2: 'Февраль',
+      3: 'Март',
+      4: 'Апрель',
+      5: 'Май',
+      6: 'Июнь',
+      7: 'Июль',
+      9: 'Сентябрь',
+      10: 'Октябрь',
+      11: 'Ноябрь',
+      12: 'Декабрь',
     };
     return map[m] ?? 'Сентябрь';
   }
 
-  void _load() => context
-      .read<AdminCubit>()
-      .loadMonth(_selectedMonth, _calendarYear);
+  void _load() =>
+      context.read<AdminCubit>().loadMonth(_selectedMonth, _calendarYear);
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +68,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             const Text('Вычитки — Завуч'),
             Text(
               'Учебный год $_academicYear/${_academicYear + 1}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              style:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),
           ],
         ),
@@ -143,14 +151,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     itemCount: teachers.length,
                     itemBuilder: (_, i) {
                       final teacher = teachers[i];
-                      final status =
-                          loaded.statuses[teacher] ?? VychitkaStatus.draft;
+                      final status = loaded.statuses[teacher] ??
+                          TeachingReportStatus.draft;
                       return Card(
                         child: ListTile(
                           title: Text(teacher, overflow: TextOverflow.ellipsis),
                           trailing: StatusBadge(status),
-                          onTap: status == VychitkaStatus.submitted ||
-                                  status == VychitkaStatus.confirmed
+                          onTap: status == TeachingReportStatus.submitted ||
+                                  status == TeachingReportStatus.confirmed
                               ? () async {
                                   await context.push(
                                     '/admin/review/$teacher/$_selectedMonth/$_calendarYear',

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import '../../teacher/models/vychitka_entry.dart';
-import '../../teacher/models/zamena.dart';
+import '../../teacher/models/teaching_report_entry.dart';
+import '../../teacher/models/substitution.dart';
 
 abstract class AdminState extends Equatable {
   const AdminState();
@@ -24,12 +24,12 @@ class AdminMonthLoaded extends AdminState {
     this.isUpdating = false,
   });
 
-  final Map<String, VychitkaStatus> statuses;
+  final Map<String, TeachingReportStatus> statuses;
   final List<String> allTeachers;
   final bool isUpdating;
 
   AdminMonthLoaded copyWith({
-    Map<String, VychitkaStatus>? statuses,
+    Map<String, TeachingReportStatus>? statuses,
     List<String>? allTeachers,
     bool? isUpdating,
   }) =>
@@ -46,16 +46,16 @@ class AdminMonthLoaded extends AdminState {
 class AdminReviewLoaded extends AdminState {
   const AdminReviewLoaded({
     required this.entries,
-    required this.zameny,
+    required this.substitutions,
     this.isUpdating = false,
   });
 
-  final List<VychitkaEntry> entries;
-  final List<Zamena> zameny;
+  final List<TeachingReportEntry> entries;
+  final List<Substitution> substitutions;
   final bool isUpdating;
 
   @override
-  List<Object?> get props => [entries, zameny, isUpdating];
+  List<Object?> get props => [entries, substitutions, isUpdating];
 }
 
 class AdminError extends AdminState {

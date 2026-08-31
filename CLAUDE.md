@@ -24,6 +24,9 @@ flutter run
 # Run tests
 flutter test
 
+# Check data-preserving migrations and rollback (temporary databases only)
+python3 -m unittest discover -s tools/pocketbase/tests -v
+
 # Run a single test file
 flutter test test/path/to/test_file.dart
 
@@ -48,7 +51,7 @@ DI is via `get_it`, registered in `lib/injection.dart`. Navigation is via `go_ro
 
 **Feature layout** (`lib/features/`):
 - `auth/` — login screen, `AuthCubit`, `AuthRepository`, `AppUser` model
-- `teacher/` — teacher home, fill-vychitka form, confirm screen; `VychitkaCubit`, `VychitkaRepository`; models: `Assignment`, `VychitkaEntry`, `Zamena`
+- `teacher/` — teacher home, teaching report form; `TeachingReportCubit`, `TeachingReportRepository`; models: `Assignment`, `TeachingReportEntry`, `Substitution`
 - `admin/` — admin home, review screen; `AdminCubit`
 
 Shared widgets live in `lib/shared/widgets/`.
@@ -57,8 +60,8 @@ Shared widgets live in `lib/shared/widgets/`.
 - `users` — auth accounts (email/password); extended with `display_name`
 - `user_profiles` — links account → role (`teacher`/`admin`) + display_name + email
 - `assignments` — teacher→subject→group→year mappings (`teacher` is a relation to profile)
-- `vychitki` — workload entries written by the app; `assignment` is a relation; status: `draft` / `submitted` / `confirmed`
-- `zameny` — substitution records written by the app
+- `teaching_report_entries` — workload entries written by the app; `assignment` is a relation; status: `draft` / `submitted` / `confirmed`
+- `substitutions` — substitution records written by the app
 
 ## Key Constraints
 
@@ -71,9 +74,17 @@ Shared widgets live in `lib/shared/widgets/`.
 ## Known pitfalls / refactoring notes
 
 - `display_name` exists on **both** `users` and `user_profiles` (legacy duplicate). Prefer reading from `user_profiles`.
-- `VychitkaCubit.loadAllMonthStatuses` used to make one network request per month; prefer a single fetch and aggregate in Dart.
-- Teacher home screen used to instantiate a throwaway `VychitkaCubit`; use `VychitkaRepository` directly instead.
+- `TeachingReportCubit.loadAllMonthStatuses` used to make one network request per month; prefer a single fetch and aggregate in Dart.
+- Teacher home screen used to instantiate a throwaway `TeachingReportCubit`; use `TeachingReportRepository` directly instead.
 
 ## Models
 
-All models use `freezed`. Key enums: `UserRole { teacher, admin }`, `VychitkaStatus { draft, submitted, confirmed }`. `VychitkaEntry` has six hour fields (lek, lrPr, kp, cons, dopKontr, ekz) plus status/audit fields.
+All models use `freezed`. Key enums: `UserRole { teacher, admin }`, `TeachingReportStatus { draft, submitted, confirmed }`. `TeachingReportEntry` has six hour fields (lectureHours, practicalHours, courseProjectHours, consultationHours, additionalAssessmentHours, examHours) plus status/audit fields.
+
+## Naming
+
+Use the English names defined in README.md throughout code, API fields and configuration.
+Dart fields use lowerCamelCase; PocketBase field names use snake_case and are mapped in
+`PocketBaseService`. Legacy identifiers are allowed only in the README mapping table,
+historical/transition migrations and migration test fixtures. Do not rename or reset
+the database directory or deployment volumes when changing package or image names.

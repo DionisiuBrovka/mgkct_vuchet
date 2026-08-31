@@ -1,4 +1,4 @@
-package com.example.mgkct_vuchet
+package com.example.mgkct_teaching_hours
 
 import io.flutter.embedding.android.FlutterActivity
 

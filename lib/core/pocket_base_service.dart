@@ -2,8 +2,8 @@ import 'package:pocketbase/pocketbase.dart';
 
 import '../features/auth/models/app_user.dart';
 import '../features/teacher/models/assignment.dart';
-import '../features/teacher/models/vychitka_entry.dart';
-import '../features/teacher/models/zamena.dart';
+import '../features/teacher/models/teaching_report_entry.dart';
+import '../features/teacher/models/substitution.dart';
 import 'constants.dart';
 
 /// Единственный класс, который взаимодействует с PocketBase.
@@ -69,7 +69,8 @@ class PocketBaseService {
   /// Загружает (или возвращает закэшированные) профили.
   Future<List<RecordModel>> _profiles() async {
     if (_profilesCache != null) return _profilesCache!;
-    final list = await _pb.collection(AppConstants.profilesColl)
+    final list = await _pb
+        .collection(AppConstants.profilesColl)
         .getFullList(sort: '+display_name');
     _profilesCache = list;
     return list;
@@ -124,7 +125,8 @@ class PocketBaseService {
     final email = _s(profile, 'email').trim();
     if (email.isEmpty) return null;
     try {
-      await _pb.collection(AppConstants.usersColl)
+      await _pb
+          .collection(AppConstants.usersColl)
           .authWithPassword(email, password);
     } catch (_) {
       return null;
@@ -170,29 +172,31 @@ class PocketBaseService {
         .toList();
   }
 
-  // ─── Vychitki ─────────────────────────────────────────────────────────────
+  // ─── Teaching report entries ──────────────────────────────────────────────
 
   /// Статусы всех месяцев учебного года одним запросом: тянет все вычитки
   /// профиля за указанный академический год и агрегирует статусы по месяцам.
-  Future<Map<String, VychitkaStatus>> getMonthStatusesForYear(
+  Future<Map<String, TeachingReportStatus>> getMonthStatusesForYear(
     String teacher,
     int academicYearStart,
   ) async {
     final profileId = await _profileIdOf(teacher);
     if (profileId == null) return {};
 
-    final entries = await _pb.collection(AppConstants.vychitkiColl).getFullList(
-      filter: _pb.filter(
-        'assignment.teacher = {:id} && year >= {:y0} && year <= {:y1}',
-        {
-          'id': profileId,
-          'y0': academicYearStart,
-          'y1': academicYearStart + 1,
-        },
-      ),
-    );
+    final entries = await _pb
+        .collection(AppConstants.teachingReportEntriesColl)
+        .getFullList(
+          filter: _pb.filter(
+            'assignment.teacher = {:id} && year >= {:y0} && year <= {:y1}',
+            {
+              'id': profileId,
+              'y0': academicYearStart,
+              'y1': academicYearStart + 1,
+            },
+          ),
+        );
 
-    final map = <String, VychitkaStatus>{};
+    final map = <String, TeachingReportStatus>{};
     for (final r in entries) {
       final month = _s(r, 'month');
       final status = _parseStatus(_s(r, 'status'));
@@ -205,7 +209,7 @@ class PocketBaseService {
     return map;
   }
 
-  Future<List<VychitkaEntry>> getVychitki({
+  Future<List<TeachingReportEntry>> getTeachingReportEntries({
     String? teacher,
     String? month,
     int? year,
@@ -231,15 +235,18 @@ class PocketBaseService {
       params,
     );
 
-    final rows = await _pb.collection(AppConstants.vychitkiColl).getFullList(
+    final rows = await _pb
+        .collection(AppConstants.teachingReportEntriesColl)
+        .getFullList(
           filter: filter.isEmpty ? null : filter,
-          expand: 'assignment, assignment.teacher, confirmed_by, confirmed_by.user',
+          expand:
+              'assignment, assignment.teacher, confirmed_by, confirmed_by.user',
         );
 
     return rows.map((r) => _entryFromRecord(r)).toList();
   }
 
-  VychitkaEntry _entryFromRecord(RecordModel r) {
+  TeachingReportEntry _entryFromRecord(RecordModel r) {
     final expand = r.data['expand'];
     RecordModel? assignment;
     if (expand is Map && expand['assignment'] is Map) {
@@ -266,7 +273,7 @@ class PocketBaseService {
       confirmedBy = _ns(c, 'display_name');
     }
 
-    return VychitkaEntry(
+    return TeachingReportEntry(
       id: r.id,
       assignmentId: assignment?.id ?? '',
       teacher: teacherName,
@@ -274,12 +281,12 @@ class PocketBaseService {
       year: _i(r, 'year'),
       subject: subject,
       group: group,
-      lek: _d(r, 'lek'),
-      lrPr: _d(r, 'lrPr'),
-      kp: _d(r, 'kp'),
-      cons: _d(r, 'cons'),
-      dopKontr: _d(r, 'dopKontr'),
-      ekz: _d(r, 'ekz'),
+      lectureHours: _d(r, 'lecture_hours'),
+      practicalHours: _d(r, 'practical_hours'),
+      courseProjectHours: _d(r, 'course_project_hours'),
+      consultationHours: _d(r, 'consultation_hours'),
+      additionalAssessmentHours: _d(r, 'additional_assessment_hours'),
+      examHours: _d(r, 'exam_hours'),
       status: _parseStatus(_s(r, 'status')),
       submittedAt: _dt(r, 'submitted_at'),
       confirmedAt: _dt(r, 'confirmed_at'),
@@ -287,29 +294,30 @@ class PocketBaseService {
     );
   }
 
-  VychitkaStatus _parseStatus(String s) {
+  TeachingReportStatus _parseStatus(String s) {
     switch (s) {
       case 'submitted':
-        return VychitkaStatus.submitted;
+        return TeachingReportStatus.submitted;
       case 'confirmed':
-        return VychitkaStatus.confirmed;
+        return TeachingReportStatus.confirmed;
       default:
-        return VychitkaStatus.draft;
+        return TeachingReportStatus.draft;
     }
   }
 
-  String _statusStr(VychitkaStatus s) {
+  String _statusStr(TeachingReportStatus s) {
     switch (s) {
-      case VychitkaStatus.submitted:
+      case TeachingReportStatus.submitted:
         return 'submitted';
-      case VychitkaStatus.confirmed:
+      case TeachingReportStatus.confirmed:
         return 'confirmed';
-      case VychitkaStatus.draft:
+      case TeachingReportStatus.draft:
         return 'draft';
     }
   }
 
-  Future<String?> _assignmentIdOf(VychitkaEntry e, String profileId) async {
+  Future<String?> _assignmentIdOf(
+      TeachingReportEntry e, String profileId) async {
     final academicYear = AppConstants.academicYearStart(e.month, e.year);
     final rows = await _pb.collection(AppConstants.assignmentsColl).getFullList(
           filter: _pb.filter(
@@ -327,15 +335,16 @@ class PocketBaseService {
   /// Сохраняет записи и возвращает их с актуальными `id`/`assignmentId`
   /// (у только что созданных записей сервер присваивает id). Возвращение
   /// обновлённых записей важно, иначе повторное сохранение создаст дубликаты.
-  Future<List<VychitkaEntry>> saveEntries(List<VychitkaEntry> entries) async {
-    final updated = <VychitkaEntry>[];
+  Future<List<TeachingReportEntry>> saveEntries(
+      List<TeachingReportEntry> entries) async {
+    final updated = <TeachingReportEntry>[];
     for (final e in entries) {
       updated.add(await _saveEntry(e));
     }
     return updated;
   }
 
-  Future<VychitkaEntry> _saveEntry(VychitkaEntry e) async {
+  Future<TeachingReportEntry> _saveEntry(TeachingReportEntry e) async {
     final profileId = await _profileIdOf(e.teacher);
     if (profileId == null) return e;
     final assignmentId = e.assignmentId.isNotEmpty
@@ -345,18 +354,19 @@ class PocketBaseService {
 
     final body = <String, Object?>{
       // assignment, month, year остаются без изменений при update
-      'lek': e.lek,
-      'lrPr': e.lrPr,
-      'kp': e.kp,
-      'cons': e.cons,
-      'dopKontr': e.dopKontr,
-      'ekz': e.ekz,
+      'lecture_hours': e.lectureHours,
+      'practical_hours': e.practicalHours,
+      'course_project_hours': e.courseProjectHours,
+      'consultation_hours': e.consultationHours,
+      'additional_assessment_hours': e.additionalAssessmentHours,
+      'exam_hours': e.examHours,
     };
 
     final isNew = e.id.isEmpty || e.assignmentId.isEmpty;
     if (isNew) {
-      final created =
-          await _pb.collection(AppConstants.vychitkiColl).create(body: {
+      final created = await _pb
+          .collection(AppConstants.teachingReportEntriesColl)
+          .create(body: {
         'assignment': assignmentId,
         'month': e.month,
         'year': e.year,
@@ -370,12 +380,15 @@ class PocketBaseService {
     } else {
       // Зафиксированная (confirmed) запись заблокирована навсегда.
       final existing = await _pb
-          .collection(AppConstants.vychitkiColl)
+          .collection(AppConstants.teachingReportEntriesColl)
           .getOne(e.id, query: {'fields': 'status'});
-      if (_s(existing, 'status') == _statusStr(VychitkaStatus.confirmed)) {
+      if (_s(existing, 'status') ==
+          _statusStr(TeachingReportStatus.confirmed)) {
         return e;
       }
-      await _pb.collection(AppConstants.vychitkiColl).update(e.id, body: body);
+      await _pb
+          .collection(AppConstants.teachingReportEntriesColl)
+          .update(e.id, body: body);
       return e;
     }
   }
@@ -384,37 +397,41 @@ class PocketBaseService {
     String teacher,
     String month,
     int year,
-    VychitkaStatus status, {
+    TeachingReportStatus status, {
     String? confirmedBy,
   }) async {
     final profileId = await _profileIdOf(teacher);
     if (profileId == null) return;
-    final rows = await _pb.collection(AppConstants.vychitkiColl).getFullList(
+    final rows = await _pb
+        .collection(AppConstants.teachingReportEntriesColl)
+        .getFullList(
           filter: _pb.filter(
               'assignment.teacher = {:id} && month = {:month} && year = {:year}',
               {'id': profileId, 'month': month, 'year': year}),
         );
     for (final r in rows) {
       // Зафиксированную запись нельзя менять.
-      if (_s(r, 'status') == _statusStr(VychitkaStatus.confirmed)) {
+      if (_s(r, 'status') == _statusStr(TeachingReportStatus.confirmed)) {
         continue;
       }
       final body = <String, Object?>{'status': _statusStr(status)};
-      if (status == VychitkaStatus.submitted) {
+      if (status == TeachingReportStatus.submitted) {
         body['submitted_at'] = DateTime.now().toIso8601String();
-      } else if (status == VychitkaStatus.confirmed) {
-        final byProfileId = confirmedBy == null
-            ? null
-            : await _profileIdOf(confirmedBy);
+      } else if (status == TeachingReportStatus.confirmed) {
+        final byProfileId =
+            confirmedBy == null ? null : await _profileIdOf(confirmedBy);
         body['confirmed_at'] = DateTime.now().toIso8601String();
         body['confirmed_by'] = byProfileId ?? '';
       }
-      await _pb.collection(AppConstants.vychitkiColl).update(r.id, body: body);
+      await _pb
+          .collection(AppConstants.teachingReportEntriesColl)
+          .update(r.id, body: body);
     }
   }
 
   Future<void> submitMonth(String teacher, String month, int year) =>
-      _updateStatusForMonth(teacher, month, year, VychitkaStatus.submitted);
+      _updateStatusForMonth(
+          teacher, month, year, TeachingReportStatus.submitted);
 
   Future<void> confirmMonth(
     String teacher,
@@ -426,26 +443,27 @@ class PocketBaseService {
         teacher,
         month,
         year,
-        VychitkaStatus.confirmed,
+        TeachingReportStatus.confirmed,
         confirmedBy: confirmedBy,
       );
 
   Future<void> rejectMonth(String teacher, String month, int year) =>
-      _updateStatusForMonth(teacher, month, year, VychitkaStatus.draft);
+      _updateStatusForMonth(teacher, month, year, TeachingReportStatus.draft);
 
-  // ─── Zameny ───────────────────────────────────────────────────────────────
+  // ─── Substitutions ───────────────────────────────────────────────────────────────
 
-  Future<List<Zamena>> getZameny(
+  Future<List<Substitution>> getSubstitutions(
       String teacher, String month, int year) async {
     final profileId = await _profileIdOf(teacher);
     if (profileId == null) return [];
-    final rows = await _pb.collection(AppConstants.zamenyColl).getFullList(
-          filter: _pb.filter(
-              'teacher = {:id} && month = {:month} && year = {:year}',
-              {'id': profileId, 'month': month, 'year': year}),
-        );
+    final rows =
+        await _pb.collection(AppConstants.substitutionsColl).getFullList(
+              filter: _pb.filter(
+                  'teacher = {:id} && month = {:month} && year = {:year}',
+                  {'id': profileId, 'month': month, 'year': year}),
+            );
     return rows
-        .map((r) => Zamena(
+        .map((r) => Substitution(
               id: r.id,
               teacher: teacher,
               month: _s(r, 'month'),
@@ -457,30 +475,32 @@ class PocketBaseService {
         .toList();
   }
 
-  Future<void> saveZamena(Zamena z) async {
-    final profileId = await _profileIdOf(z.teacher);
+  Future<void> saveSubstitution(Substitution substitution) async {
+    final profileId = await _profileIdOf(substitution.teacher);
     if (profileId == null) return;
-    await _pb.collection(AppConstants.zamenyColl).create(body: {
+    await _pb.collection(AppConstants.substitutionsColl).create(body: {
       'teacher': profileId,
-      'month': z.month,
-      'year': z.year,
-      'group': z.group,
-      'date': z.date,
-      'hours': z.hours,
+      'month': substitution.month,
+      'year': substitution.year,
+      'group': substitution.group,
+      'date': substitution.date,
+      'hours': substitution.hours,
     });
   }
 
-  Future<void> deleteZamena(
+  Future<void> deleteSubstitution(
       String teacher, String month, int year, String date) async {
     final profileId = await _profileIdOf(teacher);
     if (profileId == null) return;
-    final rows = await _pb.collection(AppConstants.zamenyColl).getFullList(
+    final rows = await _pb
+        .collection(AppConstants.substitutionsColl)
+        .getFullList(
           filter: _pb.filter(
               'teacher = {:id} && month = {:month} && year = {:year} && date = {:date}',
               {'id': profileId, 'month': month, 'year': year, 'date': date}),
         );
     for (final r in rows) {
-      await _pb.collection(AppConstants.zamenyColl).delete(r.id);
+      await _pb.collection(AppConstants.substitutionsColl).delete(r.id);
     }
   }
 }

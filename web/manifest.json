@@ -1,6 +1,6 @@
 {
-    "name": "mgkct_vuchet",
-    "short_name": "mgkct_vuchet",
+    "name": "mgkct_teaching_hours",
+    "short_name": "mgkct_teaching_hours",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

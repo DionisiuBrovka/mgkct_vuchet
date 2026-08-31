@@ -2,6 +2,8 @@
 
 Flutter-приложение для сбора и подтверждения данных о вычитанных часах преподавателей. Бэкенд — **PocketBase** (самохостинг, одна Linux-машина в локальной сети колледжа).
 
+> **Порядок работы:** сначала фиксируем требования в README, затем изменяем приложение
+
 ---
 
 ## Содержание
@@ -114,7 +116,14 @@ dev_dependencies:
 
 ## Структура данных (PocketBase)
 
-Схема создаётся автоматически миграцией `tools/pocketbase/pb_migrations/1756000000000_init_collections.js`.
+Схема создаётся миграциями из `tools/pocketbase/pb_migrations/`:
+
+- `1756000000000_init_collections.js` — историческая начальная схема.
+- `1788048000000_english_names.js` — переименование коллекций и полей без изменения
+  ID, связей, часов и статусов. Миграция поддерживает обратный переход.
+
+На пустой базе выполняются обе миграции, на существующей — только ещё не применённые.
+Начальную миграцию не переписываем.
 
 ### Коллекция `users` (auth, встроенная)
 
@@ -150,7 +159,7 @@ dev_dependencies:
 | group | text | учебная группа |
 | year | number | год начала учебного года |
 
-### Коллекция `vychitki` (base)
+### Коллекция `teaching_report_entries` (base)
 
 Одна строка — запись «назначение × месяц × год» с часами и статусом.
 
@@ -159,18 +168,18 @@ dev_dependencies:
 | assignment | relation → assignments | назначение (предмет+группа) |
 | month | text | месяц (например, `Октябрь`) |
 | year | number | календарный год месяца |
-| lek | number | лекции (часы) |
-| lrPr | number | лаб./практические (часы) |
-| kp | number | курсовой проект (часы) |
-| cons | number | консультации (часы) |
-| dopKontr | number | доп. контроль (часы) |
-| ekz | number | экзамен / диф. зачёт (часы) |
+| lecture_hours | number | лекции (часы) |
+| practical_hours | number | лаб./практические (часы) |
+| course_project_hours | number | курсовой проект (часы) |
+| consultation_hours | number | консультации (часы) |
+| additional_assessment_hours | number | доп. контроль (часы) |
+| exam_hours | number | экзамен / диф. зачёт (часы) |
 | status | select | `draft` / `submitted` / `confirmed` |
 | submitted_at | date | дата/время отправки |
 | confirmed_at | date | дата/время подтверждения |
 | confirmed_by | relation → user_profiles | завуч, подтвердивший вычитку |
 
-### Коллекция `zameny` (base)
+### Коллекция `substitutions` (base)
 
 Замена преподавателя.
 
@@ -187,8 +196,10 @@ dev_dependencies:
 
 ## Структура проекта
 
+Структура после переименования (имя корневого каталога показано условно):
+
 ```
-mgkct_vuchet/
+mgkct_teaching_hours/
 ├── android/ ios/ linux/ macos/ web/ windows/   # платформенные обёртки Flutter
 ├── assets/
 │   └── images/back.png                          # фоновое изображение
@@ -200,6 +211,7 @@ mgkct_vuchet/
 ├── tools/pocketbase/                            # локальный PocketBase для разработки
 │   ├── pocketbase                                # бинарник (в .gitignore)
 │   ├── pb_migrations/                            # миграции схемы
+│   ├── tests/test_english_names_migration.py       # проверка миграции и отката
 │   └── run.sh                                    # локальный запуск
 │
 ├── lib/
@@ -218,18 +230,19 @@ mgkct_vuchet/
 │   │   │   ├── cubit/{auth_cubit, auth_state}.dart
 │   │   │   └── screens/login_screen.dart
 │   │   ├── teacher/
-│   │   │   ├── models/{assignment, vychitka_entry, zamena}.dart
-│   │   │   ├── repository/vychitka_repository.dart
-│   │   │   ├── cubit/{vychitka_cubit, vychitka_state}.dart
-│   │   │   └── screens/{teacher_home, fill_vychitka}.dart
+│   │   │   ├── models/{assignment, teaching_report_entry, substitution}.dart
+│   │   │   ├── repository/teaching_report_repository.dart
+│   │   │   ├── cubit/{teaching_report_cubit, teaching_report_state}.dart
+│   │   │   └── screens/{teacher_home_screen, fill_teaching_report_screen}.dart
 │   │   └── admin/
 │   │       ├── cubit/{admin_cubit, admin_state}.dart
-│   │       └── screens/{admin_home, review}.dart
+│   │       └── screens/{admin_home_screen, review_screen}.dart
 │   │
 │   └── shared/
 │       ├── widgets/{month_status_card, hours_input_field, status_badge}.dart
 │       └── theme/app_theme.dart
 │
+├── test/teaching_report_service_test.dart          # сценарии через реальный API
 ├── DEPLOY.md                                     # подробное развёртывание
 ├── CLAUDE.md
 ├── pubspec.yaml
@@ -300,33 +313,21 @@ bash docker/build.sh
 
 ## Архитектура приложения
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    Presentation                      │
-│  LoginScreen │ TeacherHomeScreen │ AdminHomeScreen   │
-│  FillVychitkaScreen │ ReviewScreen                  │
-└──────────────────────┬──────────────────────────────┘
-                       │ BLoC / Cubit
-┌──────────────────────▼──────────────────────────────┐
-│                    Business Logic                    │
-│  AuthCubit │ VychitkaCubit │ AdminCubit              │
-└──────────────────────┬──────────────────────────────┘
-                       │ Repository
-┌──────────────────────▼──────────────────────────────┐
-│                    Data Layer                        │
-│  AuthRepository │ VychitkaRepository                 │
-└──────────────────────┬──────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────┐
-│                   PocketBaseService                  │
-│        (единственная точка работы с API)             │
-└──────────────────────┬──────────────────────────────┘
-                       │ pocketbase SDK
-┌──────────────────────▼──────────────────────────────┐
-│                    PocketBase                        │
-│   users │ user_profiles │ assignments │ vychitki     │
-│   zameny                                            │
-└─────────────────────────────────────────────────────┘
+```text
+Presentation
+  LoginScreen, TeacherHomeScreen, AdminHomeScreen,
+  FillTeachingReportScreen, ReviewScreen
+    ↓
+Business logic
+  AuthCubit, TeachingReportCubit, AdminCubit
+    ↓
+Repositories
+  AuthRepository, TeachingReportRepository
+    ↓
+PocketBaseService
+    ↓
+PocketBase
+  users, user_profiles, assignments, teaching_report_entries, substitutions
 ```
 
 **Ключевые решения:**
@@ -421,14 +422,14 @@ class Assignment with _$Assignment {
 }
 ```
 
-### `VychitkaEntry`
+### `TeachingReportEntry`
 ```dart
-enum VychitkaStatus { draft, submitted, confirmed }
+enum TeachingReportStatus { draft, submitted, confirmed }
 
 @freezed
-class VychitkaEntry with _$VychitkaEntry {
-  const VychitkaEntry._();
-  const factory VychitkaEntry({
+class TeachingReportEntry with _$TeachingReportEntry {
+  const TeachingReportEntry._();
+  const factory TeachingReportEntry({
     required String id,
     required String teacher,
     required String month,
@@ -436,27 +437,33 @@ class VychitkaEntry with _$VychitkaEntry {
     required String subject,
     required String group,
     @Default('') String assignmentId,
-    @Default(0) double lek,
-    @Default(0) double lrPr,
-    @Default(0) double kp,
-    @Default(0) double cons,
-    @Default(0) double dopKontr,
-    @Default(0) double ekz,
-    @Default(VychitkaStatus.draft) VychitkaStatus status,
+    @Default(0) double lectureHours,
+    @Default(0) double practicalHours,
+    @Default(0) double courseProjectHours,
+    @Default(0) double consultationHours,
+    @Default(0) double additionalAssessmentHours,
+    @Default(0) double examHours,
+    @Default(TeachingReportStatus.draft) TeachingReportStatus status,
     DateTime? submittedAt,
     DateTime? confirmedAt,
     String? confirmedBy,
-  }) = _VychitkaEntry;
+  }) = _TeachingReportEntry;
 
-  double get totalHours => lek + lrPr + kp + cons + dopKontr + ekz;
+  double get totalHours =>
+      lectureHours +
+      practicalHours +
+      courseProjectHours +
+      consultationHours +
+      additionalAssessmentHours +
+      examHours;
 }
 ```
 
-### `Zamena`
+### `Substitution`
 ```dart
 @freezed
-class Zamena with _$Zamena {
-  const factory Zamena({
+class Substitution with _$Substitution {
+  const factory Substitution({
     @Default('') String id,
     required String teacher,
     required String month,
@@ -464,7 +471,7 @@ class Zamena with _$Zamena {
     required String group,
     required String date,      // ДД.ММ.ГГГГ
     required double hours,
-  }) = _Zamena;
+  }) = _Substitution;
 }
 ```
 
@@ -491,22 +498,22 @@ class PocketBaseService {
   Future<List<Assignment>> getAssignments(String teacherName, int academicYear);
 
   // Вычитки — чтение
-  Future<List<VychitkaEntry>> getVychitki({
+  Future<List<TeachingReportEntry>> getTeachingReportEntries({
     String? teacher,
     String? month,
     int? year,
   });
 
   // Вычитки — запись
-  Future<void> saveEntries(List<VychitkaEntry> entries);
+  Future<List<TeachingReportEntry>> saveEntries(List<TeachingReportEntry> entries);
   Future<void> submitMonth(String teacher, String month, int year);
   Future<void> confirmMonth(String teacher, String month, int year, String confirmedBy);
   Future<void> rejectMonth(String teacher, String month, int year);
 
   // Замены
-  Future<List<Zamena>> getZameny(String teacher, String month, int year);
-  Future<void> saveZamena(Zamena zamena);
-  Future<void> deleteZamena(String teacher, String month, int year, String date);
+  Future<List<Substitution>> getSubstitutions(String teacher, String month, int year);
+  Future<void> saveSubstitution(Substitution substitution);
+  Future<void> deleteSubstitution(String teacher, String month, int year, String date);
 }
 ```
 

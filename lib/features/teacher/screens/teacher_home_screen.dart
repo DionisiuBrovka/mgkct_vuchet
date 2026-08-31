@@ -7,8 +7,8 @@ import '../../../injection.dart';
 import '../../../shared/widgets/month_status_card.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../auth/cubit/auth_state.dart';
-import '../models/vychitka_entry.dart';
-import '../repository/vychitka_repository.dart';
+import '../models/teaching_report_entry.dart';
+import '../repository/teaching_report_repository.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -18,7 +18,7 @@ class TeacherHomeScreen extends StatefulWidget {
 }
 
 class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
-  Map<String, VychitkaStatus>? _statuses;
+  Map<String, TeachingReportStatus>? _statuses;
   bool _loading = true;
   String? _error;
 
@@ -40,7 +40,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       _error = null;
     });
     try {
-      final statuses = await getIt<VychitkaRepository>()
+      final statuses = await getIt<TeachingReportRepository>()
           .getMonthStatusesForYear(_teacher, _academicYear);
       if (mounted) {
         setState(() {
@@ -115,8 +115,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                                 final month = AppConstants.months[i];
                                 final year = AppConstants.yearForMonth(
                                     month, _academicYear);
-                                final status =
-                                    _statuses?[month] ?? VychitkaStatus.draft;
+                                final status = _statuses?[month] ??
+                                    TeachingReportStatus.draft;
                                 return MonthStatusCard(
                                   month: month,
                                   year: year,

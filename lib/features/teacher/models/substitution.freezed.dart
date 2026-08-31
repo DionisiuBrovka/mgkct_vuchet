@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'zamena.dart';
+part of 'substitution.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -15,7 +15,7 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
-mixin _$Zamena {
+mixin _$Substitution {
   String get id => throw _privateConstructorUsedError;
   String get teacher => throw _privateConstructorUsedError;
   String get month => throw _privateConstructorUsedError;
@@ -24,16 +24,18 @@ mixin _$Zamena {
   String get date => throw _privateConstructorUsedError;
   double get hours => throw _privateConstructorUsedError;
 
-  /// Create a copy of Zamena
+  /// Create a copy of Substitution
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $ZamenaCopyWith<Zamena> get copyWith => throw _privateConstructorUsedError;
+  $SubstitutionCopyWith<Substitution> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $ZamenaCopyWith<$Res> {
-  factory $ZamenaCopyWith(Zamena value, $Res Function(Zamena) then) =
-      _$ZamenaCopyWithImpl<$Res, Zamena>;
+abstract class $SubstitutionCopyWith<$Res> {
+  factory $SubstitutionCopyWith(
+          Substitution value, $Res Function(Substitution) then) =
+      _$SubstitutionCopyWithImpl<$Res, Substitution>;
   @useResult
   $Res call(
       {String id,
@@ -46,16 +48,16 @@ abstract class $ZamenaCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$ZamenaCopyWithImpl<$Res, $Val extends Zamena>
-    implements $ZamenaCopyWith<$Res> {
-  _$ZamenaCopyWithImpl(this._value, this._then);
+class _$SubstitutionCopyWithImpl<$Res, $Val extends Substitution>
+    implements $SubstitutionCopyWith<$Res> {
+  _$SubstitutionCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of Zamena
+  /// Create a copy of Substitution
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -102,10 +104,11 @@ class _$ZamenaCopyWithImpl<$Res, $Val extends Zamena>
 }
 
 /// @nodoc
-abstract class _$$ZamenaImplCopyWith<$Res> implements $ZamenaCopyWith<$Res> {
-  factory _$$ZamenaImplCopyWith(
-          _$ZamenaImpl value, $Res Function(_$ZamenaImpl) then) =
-      __$$ZamenaImplCopyWithImpl<$Res>;
+abstract class _$$SubstitutionImplCopyWith<$Res>
+    implements $SubstitutionCopyWith<$Res> {
+  factory _$$SubstitutionImplCopyWith(
+          _$SubstitutionImpl value, $Res Function(_$SubstitutionImpl) then) =
+      __$$SubstitutionImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
@@ -119,14 +122,14 @@ abstract class _$$ZamenaImplCopyWith<$Res> implements $ZamenaCopyWith<$Res> {
 }
 
 /// @nodoc
-class __$$ZamenaImplCopyWithImpl<$Res>
-    extends _$ZamenaCopyWithImpl<$Res, _$ZamenaImpl>
-    implements _$$ZamenaImplCopyWith<$Res> {
-  __$$ZamenaImplCopyWithImpl(
-      _$ZamenaImpl _value, $Res Function(_$ZamenaImpl) _then)
+class __$$SubstitutionImplCopyWithImpl<$Res>
+    extends _$SubstitutionCopyWithImpl<$Res, _$SubstitutionImpl>
+    implements _$$SubstitutionImplCopyWith<$Res> {
+  __$$SubstitutionImplCopyWithImpl(
+      _$SubstitutionImpl _value, $Res Function(_$SubstitutionImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of Zamena
+  /// Create a copy of Substitution
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -139,7 +142,7 @@ class __$$ZamenaImplCopyWithImpl<$Res>
     Object? date = null,
     Object? hours = null,
   }) {
-    return _then(_$ZamenaImpl(
+    return _then(_$SubstitutionImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
@@ -174,8 +177,8 @@ class __$$ZamenaImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$ZamenaImpl implements _Zamena {
-  const _$ZamenaImpl(
+class _$SubstitutionImpl implements _Substitution {
+  const _$SubstitutionImpl(
       {this.id = '',
       required this.teacher,
       required this.month,
@@ -202,14 +205,14 @@ class _$ZamenaImpl implements _Zamena {
 
   @override
   String toString() {
-    return 'Zamena(id: $id, teacher: $teacher, month: $month, year: $year, group: $group, date: $date, hours: $hours)';
+    return 'Substitution(id: $id, teacher: $teacher, month: $month, year: $year, group: $group, date: $date, hours: $hours)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ZamenaImpl &&
+            other is _$SubstitutionImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.teacher, teacher) || other.teacher == teacher) &&
             (identical(other.month, month) || other.month == month) &&
@@ -223,24 +226,24 @@ class _$ZamenaImpl implements _Zamena {
   int get hashCode =>
       Object.hash(runtimeType, id, teacher, month, year, group, date, hours);
 
-  /// Create a copy of Zamena
+  /// Create a copy of Substitution
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$ZamenaImplCopyWith<_$ZamenaImpl> get copyWith =>
-      __$$ZamenaImplCopyWithImpl<_$ZamenaImpl>(this, _$identity);
+  _$$SubstitutionImplCopyWith<_$SubstitutionImpl> get copyWith =>
+      __$$SubstitutionImplCopyWithImpl<_$SubstitutionImpl>(this, _$identity);
 }
 
-abstract class _Zamena implements Zamena {
-  const factory _Zamena(
+abstract class _Substitution implements Substitution {
+  const factory _Substitution(
       {final String id,
       required final String teacher,
       required final String month,
       required final int year,
       required final String group,
       required final String date,
-      required final double hours}) = _$ZamenaImpl;
+      required final double hours}) = _$SubstitutionImpl;
 
   @override
   String get id;
@@ -257,10 +260,10 @@ abstract class _Zamena implements Zamena {
   @override
   double get hours;
 
-  /// Create a copy of Zamena
+  /// Create a copy of Substitution
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ZamenaImplCopyWith<_$ZamenaImpl> get copyWith =>
+  _$$SubstitutionImplCopyWith<_$SubstitutionImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

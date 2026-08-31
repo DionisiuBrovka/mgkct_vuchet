@@ -4,7 +4,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: mgkct_vuchet:latest
+    image: mgkct_teaching_hours:latest
     container_name: mgkct
     restart: unless-stopped
     ports:

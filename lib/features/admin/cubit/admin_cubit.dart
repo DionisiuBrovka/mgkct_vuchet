@@ -1,13 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../teacher/models/vychitka_entry.dart';
-import '../../teacher/repository/vychitka_repository.dart';
+import '../../teacher/models/teaching_report_entry.dart';
+import '../../teacher/repository/teaching_report_repository.dart';
 import 'admin_state.dart';
 
 class AdminCubit extends Cubit<AdminState> {
   AdminCubit(this._repo) : super(const AdminInitial());
 
-  final VychitkaRepository _repo;
+  final TeachingReportRepository _repo;
 
   Future<void> loadMonth(String month, int year) async {
     emit(const AdminLoading());
@@ -25,8 +25,8 @@ class AdminCubit extends Cubit<AdminState> {
     emit(const AdminLoading());
     try {
       final entries = await _repo.getEntries(teacher, month, year);
-      final zameny = await _repo.getZameny(teacher, month, year);
-      emit(AdminReviewLoaded(entries: entries, zameny: zameny));
+      final substitutions = await _repo.getSubstitutions(teacher, month, year);
+      emit(AdminReviewLoaded(entries: entries, substitutions: substitutions));
     } catch (e) {
       emit(AdminError(e.toString()));
     }
@@ -40,18 +40,20 @@ class AdminCubit extends Cubit<AdminState> {
   ) async {
     final loaded = state as AdminReviewLoaded;
     emit(AdminReviewLoaded(
-        entries: loaded.entries, zameny: loaded.zameny, isUpdating: true));
+        entries: loaded.entries,
+        substitutions: loaded.substitutions,
+        isUpdating: true));
     try {
       await _repo.confirmMonth(teacher, month, year, confirmedBy);
       final now = DateTime.now();
       emit(AdminReviewLoaded(
         entries: loaded.entries
             .map((e) => e.copyWith(
-                status: VychitkaStatus.confirmed,
+                status: TeachingReportStatus.confirmed,
                 confirmedAt: now,
                 confirmedBy: confirmedBy))
             .toList(),
-        zameny: loaded.zameny,
+        substitutions: loaded.substitutions,
         isUpdating: false,
       ));
     } catch (e) {
@@ -62,13 +64,16 @@ class AdminCubit extends Cubit<AdminState> {
   Future<void> reject(String teacher, String month, int year) async {
     final loaded = state as AdminReviewLoaded;
     emit(AdminReviewLoaded(
-        entries: loaded.entries, zameny: loaded.zameny, isUpdating: true));
+        entries: loaded.entries,
+        substitutions: loaded.substitutions,
+        isUpdating: true));
     try {
       await _repo.rejectMonth(teacher, month, year);
       emit(AdminReviewLoaded(
-        entries:
-            loaded.entries.map((e) => e.copyWith(status: VychitkaStatus.draft)).toList(),
-        zameny: loaded.zameny,
+        entries: loaded.entries
+            .map((e) => e.copyWith(status: TeachingReportStatus.draft))
+            .toList(),
+        substitutions: loaded.substitutions,
         isUpdating: false,
       ));
     } catch (e) {

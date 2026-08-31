@@ -1,10 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'zamena.freezed.dart';
+part 'substitution.freezed.dart';
 
 @freezed
-class Zamena with _$Zamena {
-  const factory Zamena({
+class Substitution with _$Substitution {
+  const factory Substitution({
     @Default('') String id,
     required String teacher,
     required String month,
@@ -12,5 +12,5 @@ class Zamena with _$Zamena {
     required String group,
     required String date,
     required double hours,
-  }) = _Zamena;
+  }) = _Substitution;
 }

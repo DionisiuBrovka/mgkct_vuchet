@@ -1,4 +1,4 @@
-name: mgkct_vuchet
+name: mgkct_teaching_hours
 description: "Учёт вычитанных часов преподавателей"
 publish_to: 'none'
 version: 0.1.0+1

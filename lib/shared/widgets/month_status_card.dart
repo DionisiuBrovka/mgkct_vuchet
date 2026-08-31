@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/teacher/models/vychitka_entry.dart';
+import '../../features/teacher/models/teaching_report_entry.dart';
 import 'status_badge.dart';
 
 class MonthStatusCard extends StatelessWidget {
@@ -14,7 +14,7 @@ class MonthStatusCard extends StatelessWidget {
 
   final String month;
   final int year;
-  final VychitkaStatus status;
+  final TeachingReportStatus status;
   final VoidCallback? onTap;
 
   @override
