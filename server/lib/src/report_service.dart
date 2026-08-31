@@ -50,7 +50,7 @@ class ReportService {
 
   Future<RecordModel> teacherProfile(String id) async {
     try {
-      final profile = await store.get('user_profiles', id);
+      final profile = await store.get('users', id);
       if (profile.data['role'] != 'teacher') {
         throw const ApiError(404, 'Преподаватель не найден');
       }
@@ -150,7 +150,7 @@ class ReportService {
     final confirmedId = record?.data['confirmed_by'] as String? ?? '';
     if (confirmedId.isNotEmpty) {
       confirmedBy =
-          (await store.get('user_profiles', confirmedId)).data['display_name']
+          (await store.get('users', confirmedId)).data['display_name']
               as String;
     }
     for (final entry in entries) {
@@ -233,10 +233,7 @@ class ReportService {
   ) async {
     admin(actor);
     period(month, year);
-    final teachers = await store.list(
-      'user_profiles',
-      filter: 'role = "teacher"',
-    );
+    final teachers = await store.list('users', filter: 'role = "teacher"');
     final reports = await store.list(
       'teaching_reports',
       filter: 'month = {:month} && year = {:year}',

@@ -104,21 +104,13 @@ void main() {
         .collection('_superusers')
         .authWithPassword('service@example.com', password);
     Future<String> profile(String email, String name, String role) async {
-      final account = await data
-          .collection('users')
-          .create(
-            body: {
-              'email': email,
-              'password': password,
-              'passwordConfirm': password,
-            },
-          );
       return (await data
-              .collection('user_profiles')
+              .collection('users')
               .create(
                 body: {
-                  'user': account.id,
                   'email': email,
+                  'password': password,
+                  'passwordConfirm': password,
                   'display_name': name,
                   'role': role,
                 },
@@ -155,6 +147,7 @@ void main() {
       );
       expect(result.statusCode, 200, reason: result.body);
       final value = jsonDecode(result.body) as Map<String, dynamic>;
+      expect(value['user']['id'], id);
       expect(value['user']['profileId'], id);
       return value['token'] as String;
     }
@@ -170,6 +163,47 @@ void main() {
     dataProcess.kill();
     await dataProcess.exitCode;
     await temporary.delete(recursive: true);
+  });
+
+  test('one account supplies login, name and current permissions', () async {
+    final me = await request('GET', '/api/auth/me', token: teacherToken);
+    expect(me.statusCode, 200);
+    expect(jsonDecode(me.body), {
+      'id': teacherId,
+      'profileId': teacherId,
+      'name': 'Одинаковое ФИО',
+      'role': 'teacher',
+    });
+    final invalid = await request(
+      'POST',
+      '/api/auth/login',
+      body: {'profileId': teacherId, 'password': 'IncorrectPassword!'},
+    );
+    expect(invalid.statusCode, 401);
+    await data.collection('users').update(otherId, body: {'role': 'admin'});
+    try {
+      final updated = await request('GET', '/api/auth/me', token: otherToken);
+      expect(updated.statusCode, 200);
+      expect(jsonDecode(updated.body)['role'], 'admin');
+    } finally {
+      await data.collection('users').update(otherId, body: {'role': 'teacher'});
+    }
+    for (final missing in ['display_name', 'role']) {
+      await expectLater(
+        data
+            .collection('users')
+            .create(
+              body: {
+                'email': 'incomplete@example.com',
+                'password': password,
+                'passwordConfirm': password,
+                if (missing != 'display_name') 'display_name': 'Без роли',
+                if (missing != 'role') 'role': 'teacher',
+              },
+            ),
+        throwsA(isA<ClientException>()),
+      );
+    }
   });
 
   test(
@@ -204,9 +238,11 @@ void main() {
       final raw = PocketBase(data.baseURL)..authStore.save(teacherToken, null);
       addTearDown(raw.close);
       await expectLater(
-        raw
-            .collection('user_profiles')
-            .update(teacherId, body: {'role': 'admin'}),
+        raw.collection('users').getFullList(),
+        throwsA(isA<ClientException>()),
+      );
+      await expectLater(
+        raw.collection('users').update(teacherId, body: {'role': 'admin'}),
         throwsA(isA<ClientException>()),
       );
       await expectLater(

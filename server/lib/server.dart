@@ -54,10 +54,11 @@ Handler createHandler(
     return jsonResponse({'status': 'ok'});
   });
   router.get('/api/auth/users', (Request request) async {
-    final profiles = await store.list('user_profiles');
+    final users = await store.list('users');
     return jsonResponse(
       [
-        for (final p in profiles) {'id': p.id, 'name': p.data['display_name']},
+        for (final user in users)
+          {'id': user.id, 'name': user.data['display_name']},
       ]..sort((a, b) => (a['name'] as String).compareTo(b['name'] as String)),
     );
   });

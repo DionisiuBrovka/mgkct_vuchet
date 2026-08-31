@@ -52,10 +52,10 @@ class PocketBaseStore {
     await pb.send('/api/internal/report-write', method: 'POST', body: body);
   });
 
-  Future<Map<String, dynamic>> login(String profileId, String password) async {
-    RecordModel profile;
+  Future<Map<String, dynamic>> login(String userId, String password) async {
+    RecordModel user;
     try {
-      profile = await get('user_profiles', profileId);
+      user = await get('users', userId);
     } on ClientException {
       throw const ApiError(401, 'Неверное имя или пароль');
     }
@@ -63,12 +63,12 @@ class PocketBaseStore {
     try {
       final auth = await userClient
           .collection('users')
-          .authWithPassword(profile.data['email'] as String, password)
+          .authWithPassword(user.data['email'] as String, password)
           .timeout(const Duration(seconds: 15));
-      if (auth.record.id != profile.data['user']) {
+      if (auth.record.id != userId) {
         throw const ApiError(401, 'Неверное имя или пароль');
       }
-      return {'token': auth.token, 'user': actor(profile, auth.record.id)};
+      return {'token': auth.token, 'user': actor(auth.record)};
     } on ClientException catch (error) {
       if (error.statusCode == 400 || error.statusCode == 401) {
         throw const ApiError(401, 'Неверное имя или пароль');
@@ -88,15 +88,7 @@ class PocketBaseStore {
           .collection('users')
           .authRefresh()
           .timeout(const Duration(seconds: 15));
-      final profiles = await list(
-        'user_profiles',
-        filter: 'user = {:id}',
-        params: {'id': auth.record.id},
-      );
-      if (profiles.length != 1) {
-        throw const ApiError(403, 'Профиль пользователя не настроен');
-      }
-      return actor(profiles.single, auth.record.id);
+      return actor(auth.record);
     } on ClientException catch (error) {
       if (error.statusCode == 401 || error.statusCode == 403) {
         throw const ApiError(401, 'Сессия истекла. Войдите снова');
@@ -107,15 +99,16 @@ class PocketBaseStore {
     }
   }
 
-  Map<String, dynamic> actor(RecordModel profile, String userId) {
-    final role = profile.data['role'];
+  Map<String, dynamic> actor(RecordModel user) {
+    final role = user.data['role'];
     if (role != 'teacher' && role != 'admin') {
       throw const ApiError(403, 'Неизвестная роль');
     }
     return {
-      'id': userId,
-      'profileId': profile.id,
-      'name': profile.data['display_name'],
+      'id': user.id,
+      // Keep the client JSON contract; both IDs now identify the same account.
+      'profileId': user.id,
+      'name': user.data['display_name'],
       'role': role,
     };
   }
