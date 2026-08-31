@@ -14,12 +14,24 @@ class StatusBadge extends StatelessWidget {
       TeachingReportStatus.submitted => ('На проверке', Colors.orange),
       TeachingReportStatus.confirmed => ('Подтверждена', Colors.green),
     };
-    return Chip(
-      label: Text(label, style: TextStyle(color: color.shade800, fontSize: 12)),
-      backgroundColor: color.shade100,
-      side: BorderSide(color: color.shade300),
-      padding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
+    final description = switch (status) {
+      TeachingReportStatus.draft =>
+        'Преподаватель может редактировать отчёт. Завучу он ещё не отправлен.',
+      TeachingReportStatus.submitted =>
+        'Отчёт отправлен завучу. Редактирование недоступно до возврата на доработку.',
+      TeachingReportStatus.confirmed =>
+        'Завуч принял отчёт. Доступен только просмотр.',
+    };
+    return Tooltip(
+      message: description,
+      child: Chip(
+        label:
+            Text(label, style: TextStyle(color: color.shade800, fontSize: 12)),
+        backgroundColor: color.shade100,
+        side: BorderSide(color: color.shade300),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -79,7 +80,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Выйти',
+            tooltip: 'Выйти из учётной записи',
             onPressed: () => context.read<AuthCubit>().logout(),
           ),
         ],
@@ -113,9 +114,16 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                             onRefresh: _loadStatuses,
                             child: ListView.builder(
                               padding: const EdgeInsets.all(16),
-                              itemCount: AppConstants.months.length,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: AppConstants.months.length + 1,
                               itemBuilder: (_, i) {
-                                final month = AppConstants.months[i];
+                                if (i == 0) {
+                                  return const ScreenHint(
+                                      title: 'Выберите месяц',
+                                      message:
+                                          'Откройте черновик, заполните часы и отправьте отчёт завучу. «На проверке» — ожидайте решения; «Подтверждена» — отчёт принят и доступен только для просмотра. Потяните список вниз, чтобы обновить статусы.');
+                                }
+                                final month = AppConstants.months[i - 1];
                                 final year = AppConstants.yearForMonth(
                                     month, _academicYear);
                                 final status = _statuses?[month] ??

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../shared/widgets/hours_input_field.dart';
@@ -49,6 +50,7 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
       context: ctx,
       builder: (_) => AlertDialog(
         title: const Text('Добавить замену'),
+        scrollable: true,
         content: Form(
           key: formKey,
           child: Column(
@@ -56,15 +58,21 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
             children: [
               TextFormField(
                 controller: groupCtrl,
-                decoration: const InputDecoration(labelText: 'Группа'),
+                decoration: const InputDecoration(
+                    labelText: 'Группа',
+                    helperText: 'Группа, в которой проведена замена',
+                    helperMaxLines: 2),
                 validator: (v) =>
                     (v == null || v.isEmpty) ? 'Обязательно' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: dateCtrl,
-                decoration:
-                    const InputDecoration(labelText: 'Дата (ДД.ММ.ГГГГ)'),
+                decoration: InputDecoration(
+                    labelText: 'Дата (ДД.ММ.ГГГГ)',
+                    helperText:
+                        'Дата занятия за ${widget.month.toLowerCase()} ${widget.year} года',
+                    helperMaxLines: 2),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Обязательно';
                   if (!RegExp(r'^\d{2}\.\d{2}\.\d{4}$').hasMatch(v)) {
@@ -76,7 +84,11 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: hoursCtrl,
-                decoration: const InputDecoration(labelText: 'Часы'),
+                decoration: const InputDecoration(
+                    labelText: 'Часы',
+                    helperText:
+                        'От 0 до 999; дробные часы — через точку, например 1.5',
+                    helperMaxLines: 2),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 validator: (v) => (v == null || double.tryParse(v) == null)
@@ -103,11 +115,14 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
                 Navigator.pop(ctx);
               }
             },
-            child: const Text('Добавить'),
+            child: const Text('Добавить в отчёт'),
           ),
         ],
       ),
     );
+    groupCtrl.dispose();
+    dateCtrl.dispose();
+    hoursCtrl.dispose();
   }
 
   @override
@@ -159,8 +174,19 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
                         Text(loaded.error!,
                             style: TextStyle(
                                 color: Theme.of(ctx).colorScheme.error)),
-                      const Text(
-                          'Часы и замены сохраняются вместе кнопкой «Сохранить черновик».'),
+                      ScreenHint(
+                        title: locked
+                            ? 'Отчёт доступен для просмотра'
+                            : 'Заполните часы за месяц',
+                        message: switch (loaded.report.status) {
+                          TeachingReportStatus.draft =>
+                            'Введите часы по каждому назначению; пустое поле означает 0. Допустимы значения от 0 до 999, дробные — через точку, например 1.5. «Сохранить черновик» сохраняет часы и замены без отправки. «Отправить» сохраняет их и передаёт завучу. Перед выходом сохраните изменения.',
+                          TeachingReportStatus.submitted =>
+                            'Отчёт отправлен завучу. Изменить часы и замены можно только после возврата на доработку. Решение появится в списке месяцев.',
+                          TeachingReportStatus.confirmed =>
+                            'Завуч подтвердил отчёт. Часы и замены больше нельзя изменять.',
+                        },
+                      ),
                       if (locked)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -171,6 +197,22 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
                             ],
                           ),
                         ),
+                      if (loaded.entries.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: Text(
+                              'Назначений на этот учебный год нет. Если вы ведёте занятия, обратитесь к администратору. Отчёт только с заменами тоже можно отправить.'),
+                        ),
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: const Text('Что означают сокращения?'),
+                        children: const [
+                          Padding(
+                              padding: EdgeInsets.only(bottom: 16),
+                              child: Text(
+                                  'Лек — лекции; ЛР/ПР — лабораторные и практические занятия; КП — курсовые проекты; Конс — консультации; Доп.к — дополнительный контроль; Экз — экзамены и дифференцированные зачёты.')),
+                        ],
+                      ),
                       ...loaded.entries.map((e) => _EntryCard(
                             entry: e,
                             locked: locked,
@@ -258,7 +300,7 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
         builder: (_) => AlertDialog(
           title: const Text('Отправить на проверку?'),
           content: const Text(
-              'После отправки вычитка будет заблокирована до решения завуча.'),
+              'Часы и замены будут сохранены и отправлены завучу. Редактирование станет доступно только при возврате отчёта на доработку.'),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -329,22 +371,27 @@ class _EntryCard extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 8),
-            // все 6 полей в один ряд
-            Row(
-              children: [
-                for (int i = 0; i < fields.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 6),
-                  Expanded(
-                    child: HoursInputField(
-                      label: fields[i].label,
-                      value: fields[i].value,
-                      enabled: !locked,
-                      onChanged: (v) => onChanged(fields[i].set(v)),
+            LayoutBuilder(builder: (context, constraints) {
+              final columns = constraints.maxWidth < 600 ? 3 : 6;
+              final width =
+                  (constraints.maxWidth - (columns - 1) * 8) / columns;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 16,
+                children: [
+                  for (final field in fields)
+                    SizedBox(
+                      width: width,
+                      child: HoursInputField(
+                        label: field.label,
+                        value: field.value,
+                        enabled: !locked,
+                        onChanged: (value) => onChanged(field.set(value)),
+                      ),
                     ),
-                  ),
                 ],
-              ],
-            ),
+              );
+            }),
           ],
         ),
       ),
@@ -384,9 +431,11 @@ class _SubstitutionsSection extends StatelessWidget {
           ],
         ),
         if (substitutions.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('Нет замен', style: TextStyle(color: Colors.grey)),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(locked
+                ? 'За этот месяц замены не указаны.'
+                : 'Если проводили замену, нажмите «Добавить» и укажите группу, дату и часы. Замена сохранится вместе с отчётом.'),
           )
         else
           ...substitutions.map((substitution) => ListTile(
@@ -400,6 +449,8 @@ class _SubstitutionsSection extends StatelessWidget {
                     if (!locked)
                       IconButton(
                         icon: const Icon(Icons.delete_outline, size: 18),
+                        tooltip:
+                            'Убрать эту замену из отчёта. Затем сохраните черновик',
                         onPressed: () => onDelete(substitution),
                       ),
                   ],

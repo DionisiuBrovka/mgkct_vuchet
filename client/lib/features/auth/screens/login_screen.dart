@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../injection.dart';
@@ -66,108 +67,120 @@ class _LoginScreenState extends State<LoginScreen> {
           fit: BoxFit.cover,
         ),
         Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: BlocConsumer<AuthCubit, AuthState>(
-                  listener: (ctx, state) {
-                    if (state is AuthError) {
-                      ScaffoldMessenger.of(ctx).showSnackBar(
-                        SnackBar(content: Text(state.message)),
-                      );
-                    }
-                  },
-                  builder: (ctx, state) {
-                    final loading = state is AuthLoading;
-                    return Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text('Вычитка',
-                              style: TextStyle(
-                                  fontSize: 28, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          const Text('Учёт учебной нагрузки',
-                              style: TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 32),
-                          if (_loadError != null) ...[
-                            Text(_loadError!),
-                            TextButton(
-                                onPressed: _loadNames,
-                                child: const Text('Повторить'))
-                          ],
-                          if (_loadingNames)
-                            const LinearProgressIndicator()
-                          else
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedProfileId,
-                              decoration:
-                                  const InputDecoration(labelText: 'ФИО'),
-                              items: _users
-                                  .map((n) => DropdownMenuItem(
-                                        value: n.id,
-                                        child: Text(
-                                            _users
-                                                        .where((u) =>
-                                                            u.name == n.name)
-                                                        .length >
-                                                    1
-                                                ? '${n.name} (${n.id.substring(n.id.length - 4)})'
-                                                : n.name,
-                                            overflow: TextOverflow.ellipsis),
-                                      ))
-                                  .toList(),
-                              onChanged: (v) =>
-                                  setState(() => _selectedProfileId = v),
-                              validator: (v) =>
-                                  v == null ? 'Выберите ФИО' : null,
-                            ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordCtrl,
-                            obscureText: _obscure,
-                            decoration: InputDecoration(
-                              labelText: 'Пароль',
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility),
-                                onPressed: () =>
-                                    setState(() => _obscure = !_obscure),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: BlocConsumer<AuthCubit, AuthState>(
+                    listener: (ctx, state) {
+                      if (state is AuthError) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text(state.message)),
+                        );
+                      }
+                    },
+                    builder: (ctx, state) {
+                      final loading = state is AuthLoading;
+                      return Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text('Вычитка',
+                                style: TextStyle(
+                                    fontSize: 28, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            const Text('Учёт учебной нагрузки',
+                                style: TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 20),
+                            const ScreenHint(
+                                title: 'Как войти',
+                                message:
+                                    'Выберите своё ФИО и введите пароль, выданный администратором. Если вас нет в списке или вы забыли пароль, обратитесь к администратору.'),
+                            if (_loadError != null) ...[
+                              Text(_loadError!),
+                              TextButton(
+                                  onPressed: _loadNames,
+                                  child: const Text('Повторить'))
+                            ],
+                            if (_loadingNames)
+                              const LinearProgressIndicator()
+                            else
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedProfileId,
+                                isExpanded: true,
+                                decoration:
+                                    const InputDecoration(labelText: 'ФИО'),
+                                items: _users
+                                    .map((n) => DropdownMenuItem(
+                                          value: n.id,
+                                          child: Text(
+                                              _users
+                                                          .where((u) =>
+                                                              u.name == n.name)
+                                                          .length >
+                                                      1
+                                                  ? '${n.name} (${n.id.substring(n.id.length - 4)})'
+                                                  : n.name,
+                                              overflow: TextOverflow.ellipsis),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setState(() => _selectedProfileId = v),
+                                validator: (v) =>
+                                    v == null ? 'Выберите ФИО' : null,
                               ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _passwordCtrl,
+                              obscureText: _obscure,
+                              decoration: InputDecoration(
+                                labelText: 'Пароль',
+                                helperText: 'Пароль вашей учётной записи',
+                                suffixIcon: IconButton(
+                                  tooltip: _obscure
+                                      ? 'Показать пароль'
+                                      : 'Скрыть пароль',
+                                  icon: Icon(_obscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility),
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
+                                ),
+                              ),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Введите пароль'
+                                  : null,
                             ),
-                            validator: (v) => (v == null || v.isEmpty)
-                                ? 'Введите пароль'
-                                : null,
-                          ),
-                          const SizedBox(height: 24),
-                          FilledButton(
-                            onPressed: loading
-                                ? null
-                                : () {
-                                    if (_formKey.currentState!.validate()) {
-                                      ctx.read<AuthCubit>().login(
-                                            _selectedProfileId!,
-                                            _passwordCtrl.text,
-                                          );
-                                    }
-                                  },
-                            child: loading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: Colors.white))
-                                : const Text('Войти'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                            const SizedBox(height: 24),
+                            FilledButton(
+                              onPressed: loading
+                                  ? null
+                                  : () {
+                                      if (_formKey.currentState!.validate()) {
+                                        ctx.read<AuthCubit>().login(
+                                              _selectedProfileId!,
+                                              _passwordCtrl.text,
+                                            );
+                                      }
+                                    },
+                              child: loading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white))
+                                  : const Text('Войти'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

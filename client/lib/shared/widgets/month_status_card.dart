@@ -25,6 +25,9 @@ class MonthStatusCard extends StatelessWidget {
             borderRadius: BorderRadiusGeometry.circular(12)),
         title: Text('$month $year',
             style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(status == TeachingReportStatus.draft
+            ? 'Открыть и заполнить часы'
+            : 'Открыть для просмотра'),
         trailing: StatusBadge(status),
         onTap: onTap,
       ),

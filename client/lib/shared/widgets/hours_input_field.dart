@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../hour_descriptions.dart';
 
 class HoursInputField extends StatefulWidget {
   const HoursInputField({
@@ -74,7 +75,11 @@ class _HoursInputFieldState extends State<HoursInputField> {
       enabled: widget.enabled,
       validator: _validate,
       decoration: InputDecoration(
-        labelText: widget.label,
+        label: Tooltip(
+          message: hourDescriptions[widget.label] ?? widget.label,
+          child: Text(widget.label),
+        ),
+        hintText: '0',
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         isDense: true,
         errorStyle: const TextStyle(fontSize: 11, height: 1.2),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../shared/widgets/status_badge.dart';
+import '../../../shared/hour_descriptions.dart';
 import '../../teacher/models/teaching_report_entry.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
@@ -78,6 +80,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
               ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
                 children: [
+                  ScreenHint(
+                    title: currentStatus == TeachingReportStatus.submitted
+                        ? 'Проверьте часы и замены'
+                        : 'Отчёт подтверждён',
+                    message: currentStatus == TeachingReportStatus.submitted
+                        ? 'Сверьте часы по назначениям и замены ниже. «Вернуть» снова откроет редактирование преподавателю. «Подтвердить» окончательно примет отчёт — изменить его через приложение будет нельзя.'
+                        : 'Это принятый отчёт. Здесь можно посмотреть часы и замены, но изменить их или вернуть отчёт уже нельзя.',
+                  ),
                   Text(loaded.report.teacherName,
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   Row(children: [
@@ -101,7 +111,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         ]),
                       )),
                   const Divider(height: 32),
-                  const Text('Итого',
+                  const Text('Итого по назначениям',
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
@@ -111,7 +121,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       TableRow(
                         decoration: BoxDecoration(color: Colors.grey.shade100),
                         children: totals.keys
-                            .map((k) => _cell(k, bold: true))
+                            .map((k) => Tooltip(
+                                message: hourDescriptions[k] ?? k,
+                                child: _cell(k, bold: true)))
                             .toList(),
                       ),
                       TableRow(
@@ -121,10 +133,21 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                      hourDescriptions.entries
+                          .map((e) => '${e.key} — ${e.value.toLowerCase()}')
+                          .join('; '),
+                      style: Theme.of(context).textTheme.bodySmall),
+                  if (substitutions.isEmpty)
+                    const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: Text('Замены за этот месяц не указаны.')),
                   if (substitutions.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    const Text('Замены',
-                        style: TextStyle(
+                    Text(
+                        'Замены · ${loaded.report.totals['substitutionHours'] ?? 0} ч',
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     ...substitutions.map((substitution) => Text(

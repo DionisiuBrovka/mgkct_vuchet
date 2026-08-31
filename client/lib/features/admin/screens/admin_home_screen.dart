@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -76,7 +77,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Выйти',
+            tooltip: 'Выйти из учётной записи',
             onPressed: () => context.read<AuthCubit>().logout(),
           ),
         ],
@@ -112,6 +113,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _selectedMonth,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: 'Месяц'),
                     items: AppConstants.months
                         .map((m) => DropdownMenuItem(
@@ -148,14 +150,30 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   onRefresh: () async => _load(),
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: teachers.length,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: teachers.length + 1,
                     itemBuilder: (_, i) {
-                      final teacher = teachers[i];
+                      if (i == 0) {
+                        return ScreenHint(
+                            title: 'Проверка отчётов',
+                            message: teachers.isEmpty
+                                ? 'За выбранный период преподаватели не найдены. Проверьте учебный год и месяц. Профили преподавателей настраивает администратор.'
+                                : 'Выберите учебный год и месяц выше, затем откройте отчёт «На проверке». Проверьте часы и замены, подтвердите отчёт или верните его преподавателю. Черновики ещё не отправлены; подтверждённые отчёты можно просматривать.');
+                      }
+                      final teacher = teachers[i - 1];
                       final status = teacher.status;
                       return Card(
                         child: ListTile(
                           title: Text(teacher.name,
                               overflow: TextOverflow.ellipsis),
+                          subtitle: Text(switch (status) {
+                            TeachingReportStatus.draft =>
+                              'Ожидается отправка преподавателем',
+                            TeachingReportStatus.submitted =>
+                              'Нажмите, чтобы проверить отчёт',
+                            TeachingReportStatus.confirmed =>
+                              'Нажмите, чтобы посмотреть отчёт',
+                          }),
                           trailing: StatusBadge(status),
                           onTap: status == TeachingReportStatus.submitted ||
                                   status == TeachingReportStatus.confirmed
