@@ -1,0 +1,44 @@
+# Preserve the project name previously derived from the docker/ directory.
+name: docker
+
+services:
+  pocketbase:
+    build:
+      context: .
+      dockerfile: pocketbase.Dockerfile
+    image: mgkct_data:latest
+    restart: unless-stopped
+    volumes:
+      - mgkct_data:/pb/pb_data
+    ports:
+      - "127.0.0.1:8091:8090"
+    environment:
+      PB_SERVICE_EMAIL: ${PB_SERVICE_EMAIL:?Set PB_SERVICE_EMAIL}
+      PB_SERVICE_PASSWORD: ${PB_SERVICE_PASSWORD:?Set PB_SERVICE_PASSWORD}
+      NO_PROXY: "${NO_PROXY:-},${no_proxy:-},localhost,127.0.0.1,::1,pocketbase,mgkct_data_store,mgkct"
+      no_proxy: "${NO_PROXY:-},${no_proxy:-},localhost,127.0.0.1,::1,pocketbase,mgkct_data_store,mgkct"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8090/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  mgkct:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mgkct_teaching_hours:latest
+    container_name: mgkct
+    restart: unless-stopped
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      POCKETBASE_URL: http://pocketbase:8090
+      PB_SERVICE_EMAIL: ${PB_SERVICE_EMAIL:?Set PB_SERVICE_EMAIL}
+      PB_SERVICE_PASSWORD: ${PB_SERVICE_PASSWORD:?Set PB_SERVICE_PASSWORD}
+      NO_PROXY: "${NO_PROXY:-},${no_proxy:-},localhost,127.0.0.1,::1,pocketbase,mgkct_data_store,mgkct"
+      no_proxy: "${NO_PROXY:-},${no_proxy:-},localhost,127.0.0.1,::1,pocketbase,mgkct_data_store,mgkct"
+volumes:
+  mgkct_data:

@@ -1,24 +1,18 @@
-# Явно не нужное в образ/сборке — чтобы контекст build'а был лёгким
 .git
-.gitignore
-build
-.dart_tool
-.pub-cache
-.gradle
-.idea
-.vscode
-
-# Платформенные каталоги Flutter не нужны для web-сборки
-android
-ios
-linux
-macos
-windows
-
-# Данные PocketBase (передаются через том), не копируются в образ
-tools/pocketbase/pb_data
-tools/pocketbase/pb_public
-tools/pocketbase/run.sh
-
-# Секреты
-assets/service_account.json
+**/.dart_tool
+**/build
+**/.pub-cache
+**/pb_data
+**/pb_public
+tools
+.env
+.env.*
+client/assets/service_account.json
+client/android
+client/ios
+client/linux
+client/macos
+client/windows
+server/test
+client/test
+data/pocketbase/tests
