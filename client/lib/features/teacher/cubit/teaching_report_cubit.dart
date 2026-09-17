@@ -29,6 +29,28 @@ class TeachingReportCubit extends Cubit<TeachingReportState> {
     emit(loaded.copyWith(editor: editor, error: null));
   }
 
+  void saveSubstitution(EditableSubstitution substitution) {
+    final loaded = state;
+    if (loaded is! TeachingReportLoaded || loaded.isSaving) return;
+    final editor = loaded.editor.copy();
+    final index =
+        editor.substitutions.indexWhere((item) => item.key == substitution.key);
+    if (index >= 0) {
+      editor.substitutions[index] = substitution.copy();
+    } else {
+      editor.substitutions.add(substitution.copy());
+    }
+    emit(loaded.copyWith(editor: editor, error: null));
+  }
+
+  void deleteSubstitution(EditableSubstitution substitution) {
+    final loaded = state;
+    if (loaded is! TeachingReportLoaded || loaded.isSaving) return;
+    final editor = loaded.editor.copy();
+    editor.substitutions.removeWhere((item) => item.key == substitution.key);
+    emit(loaded.copyWith(editor: editor, error: null));
+  }
+
   Future<void> saveDraft() => _save('save');
   Future<void> submit() => _save('submit');
   Future<void> _save(String action) async {

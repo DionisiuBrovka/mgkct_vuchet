@@ -4,9 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mgkct_teaching_hours/core/api_service.dart';
+import 'package:mgkct_teaching_hours/core/domain.dart';
 import 'package:mgkct_teaching_hours/core/report_repository.dart';
 import 'package:mgkct_teaching_hours/features/teacher/cubit/teaching_report_cubit.dart';
 import 'package:mgkct_teaching_hours/features/teacher/cubit/teaching_report_state.dart';
+import 'package:mgkct_teaching_hours/features/teacher/models/editable_report.dart';
 
 Map<String, dynamic> report({String status = 'draft'}) => {
       'id': 'report',
@@ -95,5 +97,21 @@ void main() {
     expect(writes, 1);
     expect((cubit.state as TeachingReportLoaded).editor.report.status.name,
         'submitted');
+  });
+
+  test(
+      'substitution edits retain server id and identical local rows are distinct',
+      () {
+    final editor = EditableReport.fromReport(ReportDto.fromJson(report()));
+    final first = EditableSubstitution(
+        date: '2026-09-10', description: 'Группа ПР-21', hours: '1,5');
+    final second = EditableSubstitution(
+        date: '2026-09-10', description: 'Группа ПР-21', hours: '1,5');
+    editor.substitutions.addAll([first, second]);
+    first.description = 'Группа ПР-22';
+    expect(first.key, isNot(second.key));
+    final input = editor.input()!;
+    expect(input['substitutions'][0]['id'], isNull);
+    expect(input['substitutions'][0]['hours'], '1.5');
   });
 }

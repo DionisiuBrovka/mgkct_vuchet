@@ -88,8 +88,13 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
                             entry: entry,
                             locked: locked),
                       const SizedBox(height: 12),
-                      Text(
-                          'Замены: ${report.substitutions.isEmpty ? 'не указаны' : report.substitutions.map((s) => '${s.description} — ${s.hours.value} ч').join('; ')}'),
+                      _SubstitutionsSection(
+                          items: loaded.editor.substitutions,
+                          locked: locked,
+                          onEdit: (item) => _editSubstitution(item),
+                          onDelete: (item) => context
+                              .read<TeachingReportCubit>()
+                              .deleteSubstitution(item)),
                       Text(
                           'Итого по назначениям: ${loaded.editor.assignmentTotal.canonical} ч; общий итог: ${loaded.editor.grandTotal.canonical} ч'),
                     ]),
@@ -128,6 +133,56 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
               ]));
         }),
       );
+
+  Future<void> _editSubstitution(EditableSubstitution? original) async {
+    final item = original?.copy() ??
+        EditableSubstitution(date: '', description: '', hours: '');
+    final date = TextEditingController(text: item.date);
+    final description = TextEditingController(text: item.description);
+    final hours = TextEditingController(text: item.hours);
+    final result = await showDialog<EditableSubstitution>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text(
+                  original == null ? 'Добавить замену' : 'Изменить замену'),
+              content: Column(mainAxisSize: MainAxisSize.min, children: [
+                TextField(
+                    controller: date,
+                    decoration:
+                        const InputDecoration(labelText: 'Дата (ГГГГ-ММ-ДД)')),
+                TextField(
+                    controller: description,
+                    decoration: const InputDecoration(
+                        labelText: 'Кого и в какой группе заменяли')),
+                TextField(
+                    controller: hours,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Часы')),
+              ]),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Отмена')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(
+                        context,
+                        EditableSubstitution(
+                            id: item.id,
+                            key: item.key,
+                            date: date.text.trim(),
+                            description: description.text.trim(),
+                            hours: hours.text.trim())),
+                    child: const Text('Сохранить')),
+              ],
+            ));
+    date.dispose();
+    description.dispose();
+    hours.dispose();
+    if (result != null && mounted) {
+      context.read<TeachingReportCubit>().saveSubstitution(result);
+    }
+  }
 }
 
 class _EntryCard extends StatelessWidget {
@@ -182,3 +237,43 @@ String _label(String key) => const {
       'additionalAssessmentHours': 'Доп.к',
       'examHours': 'Экз'
     }[key]!;
+
+class _SubstitutionsSection extends StatelessWidget {
+  const _SubstitutionsSection(
+      {required this.items,
+      required this.locked,
+      required this.onEdit,
+      required this.onDelete});
+  final List<EditableSubstitution> items;
+  final bool locked;
+  final ValueChanged<EditableSubstitution?> onEdit;
+  final ValueChanged<EditableSubstitution> onDelete;
+  @override
+  Widget build(BuildContext context) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('Замены'),
+          const Spacer(),
+          if (!locked)
+            TextButton.icon(
+                onPressed: () => onEdit(null),
+                icon: const Icon(Icons.add),
+                label: const Text('Добавить'))
+        ]),
+        for (final item in items)
+          ListTile(
+              title: Text(item.description),
+              subtitle: Text('${item.date} · ${item.hours} ч'),
+              trailing: locked
+                  ? null
+                  : Row(mainAxisSize: MainAxisSize.min, children: [
+                      IconButton(
+                          onPressed: () => onEdit(item),
+                          icon: const Icon(Icons.edit)),
+                      IconButton(
+                          onPressed: () => onDelete(item),
+                          icon: const Icon(Icons.delete_outline))
+                    ])),
+        if (items.isEmpty) const Text('Замены не указаны.'),
+      ]);
+}
