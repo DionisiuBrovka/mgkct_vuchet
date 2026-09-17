@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -145,4 +145,12 @@ python3 -m json.tool task/api_examples.json > /dev/null
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+2026-09-17 созданы [api_contract.md](api_contract.md) и
+[api_examples.json](api_examples.json): новые typed routes/DTO, cookie session,
+exact decimals, full aggregate CAS commands, права, error envelope и examples
+draft/submitted/confirmed/substitution-only/401/403/409/422. Legacy API и
+`profileId` не переносятся.
+
+Проверки: вручную сопоставлены teacher/admin сценарии со всеми routes/roles;
+`python3 -m json.tool task/api_examples.json > /dev/null` и `git diff --check
+-- task/` завершились с exit code 0. Исходный код и базы не менялись.
