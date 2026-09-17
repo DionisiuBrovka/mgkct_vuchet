@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../models/report_snapshot.dart';
-import '../models/teaching_report_entry.dart';
-import '../models/substitution.dart';
+import '../models/editable_report.dart';
 
 abstract class TeachingReportState extends Equatable {
   const TeachingReportState();
@@ -18,18 +16,16 @@ class TeachingReportLoading extends TeachingReportState {
 }
 
 class TeachingReportLoaded extends TeachingReportState {
-  const TeachingReportLoaded(this.report, {this.isSaving = false, this.error});
-  final ReportSnapshot report;
+  const TeachingReportLoaded(this.editor, {this.isSaving = false, this.error});
+  final EditableReport editor;
   final bool isSaving;
   final String? error;
-  List<TeachingReportEntry> get entries => report.entries;
-  List<Substitution> get substitutions => report.substitutions;
   TeachingReportLoaded copyWith(
-          {ReportSnapshot? report, bool? isSaving, String? error}) =>
-      TeachingReportLoaded(report ?? this.report,
+          {EditableReport? editor, bool? isSaving, String? error}) =>
+      TeachingReportLoaded(editor ?? this.editor,
           isSaving: isSaving ?? this.isSaving, error: error);
   @override
-  List<Object?> get props => [report, isSaving, error];
+  List<Object?> get props => [editor, isSaving, error];
 }
 
 class TeachingReportError extends TeachingReportState {

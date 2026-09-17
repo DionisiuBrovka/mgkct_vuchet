@@ -73,7 +73,7 @@ class _AppState extends State<App> {
               builder: (_, state) => BlocProvider(
                 create: (_) => TeachingReportCubit(getIt()),
                 child: FillTeachingReportScreen(
-                  month: state.pathParameters['month']!,
+                  month: int.tryParse(state.pathParameters['month']!) ?? 0,
                   year: int.tryParse(state.pathParameters['year']!) ?? 0,
                 ),
               ),

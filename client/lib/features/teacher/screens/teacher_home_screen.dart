@@ -136,7 +136,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                             year: year,
                             status: status,
                             onTap: () async {
-                              await context.push('/teacher/fill/$month/$year');
+                              await context.push(
+                                  '/teacher/fill/${period['month']}/$year');
                               _periodsCubit.load();
                             },
                           );
