@@ -8,7 +8,6 @@ enum UserRole { teacher, admin }
 class AppUser with _$AppUser {
   const factory AppUser({
     required String id,
-    required String profileId,
     required String name,
     required UserRole role,
   }) = _AppUser;

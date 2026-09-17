@@ -20,7 +20,7 @@ class AuthAuthenticated extends AuthState {
   const AuthAuthenticated(this.user);
   final AppUser user;
   @override
-  List<Object?> get props => [user.id, user.profileId, user.name, user.role];
+  List<Object?> get props => [user.id, user.name, user.role];
 }
 
 class AuthError extends AuthState {

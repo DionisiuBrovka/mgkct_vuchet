@@ -11,10 +11,10 @@ class AuthCubit extends Cubit<AuthState> {
   }
   final AuthRepository _repo;
   late final StreamSubscription<void> _expired;
-  Future<void> login(String profileId, String password) async {
+  Future<void> login(String userId, String password) async {
     emit(const AuthLoading());
     try {
-      final user = await _repo.login(profileId, password);
+      final user = await _repo.login(userId, password);
       if (!isClosed) emit(AuthAuthenticated(user));
     } catch (error) {
       if (!isClosed) emit(AuthError(error.toString()));

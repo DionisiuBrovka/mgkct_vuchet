@@ -34,7 +34,7 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
   void initState() {
     super.initState();
     final auth = context.read<AuthCubit>().state as AuthAuthenticated;
-    _teacher = auth.user.profileId;
+    _teacher = auth.user.id;
     context
         .read<TeachingReportCubit>()
         .loadMonth(_teacher, widget.month, widget.year);

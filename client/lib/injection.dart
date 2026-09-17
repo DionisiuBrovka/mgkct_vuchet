@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 
 import 'core/constants.dart';
 import 'core/api_service.dart';
+import 'core/report_repository.dart';
 import 'features/auth/repository/auth_repository.dart';
 import 'features/teacher/repository/teaching_report_repository.dart';
 
@@ -15,6 +16,7 @@ void setupLocator() {
     AuthRepository(getIt<ApiService>()),
   );
   getIt.registerSingleton<TeachingReportRepository>(
-    TeachingReportRepository(getIt<ApiService>()),
-  );
+      TeachingReportRepository(getIt<ApiService>()));
+  getIt.registerSingleton<ReportRepository>(
+      ReportRepository(getIt<ApiService>()));
 }

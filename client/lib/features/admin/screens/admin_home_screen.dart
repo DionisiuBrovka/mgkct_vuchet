@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants.dart';
+import '../../../core/domain.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../teacher/models/teaching_report_entry.dart';
@@ -167,16 +168,17 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           title: Text(teacher.name,
                               overflow: TextOverflow.ellipsis),
                           subtitle: Text(switch (status) {
-                            TeachingReportStatus.draft =>
+                            ReportStatus.draft =>
                               'Ожидается отправка преподавателем',
-                            TeachingReportStatus.submitted =>
+                            ReportStatus.submitted =>
                               'Нажмите, чтобы проверить отчёт',
-                            TeachingReportStatus.confirmed =>
+                            ReportStatus.confirmed =>
                               'Нажмите, чтобы посмотреть отчёт',
                           }),
-                          trailing: StatusBadge(status),
-                          onTap: status == TeachingReportStatus.submitted ||
-                                  status == TeachingReportStatus.confirmed
+                          trailing: StatusBadge(
+                              TeachingReportStatus.values.byName(status.name)),
+                          onTap: status == ReportStatus.submitted ||
+                                  status == ReportStatus.confirmed
                               ? () async {
                                   await context.push(
                                     '/admin/review/${teacher.id}/$_selectedMonth/$_calendarYear',

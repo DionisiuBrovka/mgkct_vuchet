@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mgkct_teaching_hours/core/api_service.dart';
+import 'package:mgkct_teaching_hours/core/report_repository.dart';
 import 'package:mgkct_teaching_hours/features/admin/cubit/admin_cubit.dart';
 import 'package:mgkct_teaching_hours/features/admin/screens/review_screen.dart';
 import 'package:mgkct_teaching_hours/features/teacher/cubit/teaching_report_cubit.dart';
@@ -43,6 +44,43 @@ Map<String, dynamic> fixture({String status = 'draft'}) => {
         'examHours': 6,
         'substitutionHours': 0
       },
+    };
+
+Map<String, dynamic> sharedFixture({String status = 'confirmed'}) => {
+      'id': 'report',
+      'teacher': {'id': 'teacher-id', 'name': 'Иванов И.И.', 'role': 'teacher'},
+      'period': {'year': 2026, 'month': 9},
+      'status': status,
+      'revision': 1,
+      'entries': [
+        {
+          'id': 'entry-id',
+          'assignment': {
+            'id': 'assignment-id',
+            'subject': 'Математика',
+            'group': 'ПР-21'
+          },
+          'lectureHours': '1',
+          'practicalHours': '2',
+          'courseProjectHours': '3',
+          'consultationHours': '4',
+          'additionalAssessmentHours': '5',
+          'examHours': '6',
+          'totalHours': '21'
+        }
+      ],
+      'substitutions': [],
+      'totals': {
+        'lectureHours': '1',
+        'practicalHours': '2',
+        'courseProjectHours': '3',
+        'consultationHours': '4',
+        'additionalAssessmentHours': '5',
+        'examHours': '6',
+        'assignmentTotal': '21',
+        'substitutionTotal': '0',
+        'grandTotal': '21'
+      }
     };
 void main() {
   test('failed save preserves edited hours and local substitutions', () async {
@@ -119,12 +157,12 @@ void main() {
       (tester) async {
     final api = ApiService('http://localhost',
         client: MockClient((_) async => http.Response(
-            jsonEncode(fixture(status: 'confirmed')), 200,
+            jsonEncode(sharedFixture(status: 'confirmed')), 200,
             headers: {'content-type': 'application/json'})));
     addTearDown(api.close);
     await tester.pumpWidget(MaterialApp(
         home: BlocProvider(
-            create: (_) => AdminCubit(TeachingReportRepository(api)),
+            create: (_) => AdminCubit(ReportRepository(api)),
             child: const ReviewScreen(
                 teacher: 'teacher-id', month: 'Сентябрь', year: 2026))));
     await tester.pumpAndSettle();

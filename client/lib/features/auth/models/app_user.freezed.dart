@@ -17,7 +17,6 @@ final _privateConstructorUsedError = UnsupportedError(
 /// @nodoc
 mixin _$AppUser {
   String get id => throw _privateConstructorUsedError;
-  String get profileId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   UserRole get role => throw _privateConstructorUsedError;
 
@@ -32,7 +31,7 @@ abstract class $AppUserCopyWith<$Res> {
   factory $AppUserCopyWith(AppUser value, $Res Function(AppUser) then) =
       _$AppUserCopyWithImpl<$Res, AppUser>;
   @useResult
-  $Res call({String id, String profileId, String name, UserRole role});
+  $Res call({String id, String name, UserRole role});
 }
 
 /// @nodoc
@@ -51,7 +50,6 @@ class _$AppUserCopyWithImpl<$Res, $Val extends AppUser>
   @override
   $Res call({
     Object? id = null,
-    Object? profileId = null,
     Object? name = null,
     Object? role = null,
   }) {
@@ -59,10 +57,6 @@ class _$AppUserCopyWithImpl<$Res, $Val extends AppUser>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      profileId: null == profileId
-          ? _value.profileId
-          : profileId // ignore: cast_nullable_to_non_nullable
               as String,
       name: null == name
           ? _value.name
@@ -83,7 +77,7 @@ abstract class _$$AppUserImplCopyWith<$Res> implements $AppUserCopyWith<$Res> {
       __$$AppUserImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String profileId, String name, UserRole role});
+  $Res call({String id, String name, UserRole role});
 }
 
 /// @nodoc
@@ -100,7 +94,6 @@ class __$$AppUserImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? profileId = null,
     Object? name = null,
     Object? role = null,
   }) {
@@ -108,10 +101,6 @@ class __$$AppUserImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      profileId: null == profileId
-          ? _value.profileId
-          : profileId // ignore: cast_nullable_to_non_nullable
               as String,
       name: null == name
           ? _value.name
@@ -129,15 +118,10 @@ class __$$AppUserImplCopyWithImpl<$Res>
 
 class _$AppUserImpl implements _AppUser {
   const _$AppUserImpl(
-      {required this.id,
-      required this.profileId,
-      required this.name,
-      required this.role});
+      {required this.id, required this.name, required this.role});
 
   @override
   final String id;
-  @override
-  final String profileId;
   @override
   final String name;
   @override
@@ -145,7 +129,7 @@ class _$AppUserImpl implements _AppUser {
 
   @override
   String toString() {
-    return 'AppUser(id: $id, profileId: $profileId, name: $name, role: $role)';
+    return 'AppUser(id: $id, name: $name, role: $role)';
   }
 
   @override
@@ -154,14 +138,12 @@ class _$AppUserImpl implements _AppUser {
         (other.runtimeType == runtimeType &&
             other is _$AppUserImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.profileId, profileId) ||
-                other.profileId == profileId) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.role, role) || other.role == role));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, id, profileId, name, role);
+  int get hashCode => Object.hash(runtimeType, id, name, role);
 
   /// Create a copy of AppUser
   /// with the given fields replaced by the non-null parameter values.
@@ -175,14 +157,11 @@ class _$AppUserImpl implements _AppUser {
 abstract class _AppUser implements AppUser {
   const factory _AppUser(
       {required final String id,
-      required final String profileId,
       required final String name,
       required final UserRole role}) = _$AppUserImpl;
 
   @override
   String get id;
-  @override
-  String get profileId;
   @override
   String get name;
   @override

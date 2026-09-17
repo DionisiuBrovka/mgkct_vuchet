@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../teacher/models/report_snapshot.dart';
+import '../../../core/domain.dart';
 
 abstract class AdminState extends Equatable {
   const AdminState();
@@ -17,7 +17,7 @@ class AdminLoading extends AdminState {
 
 class AdminMonthLoaded extends AdminState {
   const AdminMonthLoaded(this.teachers);
-  final List<TeacherSummary> teachers;
+  final List<AdminTeacherDto> teachers;
   @override
   List<Object?> get props => [teachers];
 }
@@ -25,7 +25,7 @@ class AdminMonthLoaded extends AdminState {
 class AdminReviewLoaded extends AdminState {
   const AdminReviewLoaded(this.report,
       {this.isUpdating = false, this.completed = false, this.error});
-  final ReportSnapshot report;
+  final ReportDto report;
   final bool isUpdating;
   final bool completed;
   final String? error;

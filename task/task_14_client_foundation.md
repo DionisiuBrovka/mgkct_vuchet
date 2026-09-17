@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -150,4 +150,17 @@ git diff --check
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+Добавлены shared `domain.dart` и typed `ReportRepository`: API DTO хранит все
+hours/totals как canonical `DecimalValue` strings, не `double`. `ApiService`
+работает с HttpOnly cookie transport, query parameters и error envelope, без
+bearer credential. `profileId` удалён из AppUser/login; новый login body —
+`{userId,password}`, directory — `{users:[id,name]}`.
+
+Admin Cubit/state/review переведены на shared `ReportDto`/`AdminTeacherDto` и
+не импортируют teacher repository/models. Existing teacher UI оставлен только
+как временный compile-compatible consumer до задач 16–18; новый shared
+repository является единственной границей для новых screens.
+
+Выполнены build_runner generation, `flutter analyze` — exit 0, `flutter test`
+— exit 0 (5 tests), `git diff --check` — exit 0. Contract tests проверяют
+long decimal, JSON number rejection и typed shared report fixture.

@@ -32,7 +32,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     super.initState();
     final auth = context.read<AuthCubit>().state as AuthAuthenticated;
     _teacher = auth.user.name;
-    _teacherId = auth.user.profileId;
+    _teacherId = auth.user.id;
     _academicYear = AppConstants.currentAcademicYear();
     _loadStatuses();
   }
