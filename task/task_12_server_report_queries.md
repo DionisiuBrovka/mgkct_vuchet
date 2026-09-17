@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -150,4 +150,17 @@ git diff --check
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+Добавлены `Decimal` на BigInt и `ReportQueries`: server-derived 11 teacher
+periods, admin periods/overview with filters, protected full report DTO and
+bounded revision retry. Несохранённый draft имеет revision 0 и не создаёт
+запись; teacher ограничен текущим academic year, admin не читает draft.
+Итоги строк, шести полей, назначений, замен и grand total выдаются только как
+canonical decimal strings. Исправлен baseline decimal pattern: теперь 0.1 и
+другие дроби с нулевой целой частью валидны.
+
+`server/test/api_test.dart` проверяет permissions, 11 periods, empty read,
+exact `0.1 + 0.2`, длинную дробь, раздельные totals и admin filter на isolated
+PocketBase fixture. 2026-09-17: server format/analyze/test — exit 0 (3 tests;
+analyze имеет 23 non-blocking style infos); PB unittest — exit 0 (3 tests);
+`git diff --check` — exit 0. Ручной HTTP QA на temporary loopback fixture
+сравнил teacher/admin query и подтверждает отсутствие float/side effect read.

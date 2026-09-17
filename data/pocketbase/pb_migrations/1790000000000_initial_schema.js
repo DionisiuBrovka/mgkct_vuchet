@@ -44,7 +44,7 @@ migrate((app) => {
   reports.addIndex("uq_report_period", true, "teacher, month, year", "")
   app.save(reports)
 
-  const decimal = () => new TextField({name: "", required: true, min: 1, max: 1048576, pattern: "^(0|[1-9][0-9]*(\\.[0-9]*[1-9])?)$"})
+  const decimal = () => new TextField({name: "", required: true, min: 1, max: 1048576, pattern: "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$"})
   const entries = base("teaching_report_entries")
   entries.fields.add(new RelationField({name: "report", required: true, maxSelect: 1, collectionId: reports.id, cascadeDelete: false}))
   entries.fields.add(new RelationField({name: "assignment", required: true, maxSelect: 1, collectionId: assignments.id, cascadeDelete: false}))

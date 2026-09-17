@@ -10,6 +10,7 @@ import 'package:shelf_static/shelf_static.dart';
 import 'src/api_error.dart';
 import 'src/auth_service.dart';
 import 'src/pocketbase_store.dart';
+import 'src/report_queries.dart';
 
 export 'src/pocketbase_store.dart';
 
@@ -64,6 +65,7 @@ Handler createHandler(
   AuthService? auth,
 }) {
   final service = auth ?? AuthService(store);
+  final queries = ReportQueries(store);
   final attempts = <String, List<DateTime>>{};
   final router = Router()
     ..get('/api/health', (Request _) async {
@@ -115,6 +117,42 @@ Handler createHandler(
       (Request request) =>
           jsonResponse({'user': (request.context['actor'] as Actor).toJson()}),
     )
+    ..get(
+      '/api/teacher/periods',
+      (Request request) async => jsonResponse(
+        await queries.teacherPeriods(request.context['actor'] as Actor),
+      ),
+    )
+    ..get(
+      '/api/reports/<teacher>/<year>/<month>',
+      (Request request, String teacher, String year, String month) async =>
+          jsonResponse(
+            await queries.report(
+              request.context['actor'] as Actor,
+              teacher,
+              int.tryParse(year) ?? -1,
+              int.tryParse(month) ?? -1,
+            ),
+          ),
+    )
+    ..get(
+      '/api/admin/periods',
+      (Request request) async => jsonResponse(
+        await queries.adminPeriods(request.context['actor'] as Actor),
+      ),
+    )
+    ..get('/api/admin/reports', (Request request) async {
+      final q = request.url.queryParameters;
+      return jsonResponse(
+        await queries.adminOverview(
+          request.context['actor'] as Actor,
+          int.tryParse(q['year'] ?? '') ?? -1,
+          int.tryParse(q['month'] ?? '') ?? -1,
+          query: q['q'],
+          requestedStatus: q['status'],
+        ),
+      );
+    })
     ..post('/api/auth/logout', (Request request) async {
       await jsonBody(request);
       await service.logout(sessionCookie(request) ?? '');

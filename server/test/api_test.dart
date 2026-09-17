@@ -13,7 +13,7 @@ void main() {
   late HttpServer server;
   late PocketBase data;
   late PocketBaseStore store;
-  late String teacherId, adminId;
+  late String teacherId, adminId, queryTeacherId, assignmentId;
   const password = 'TemporaryIntegration123!';
   const origin = 'http://browser.test';
 
@@ -100,6 +100,29 @@ void main() {
       'teacher',
     );
     adminId = await user('admin@example.invalid', 'Одинаковое ФИО', 'admin');
+    queryTeacherId = await user(
+      'query@example.invalid',
+      'Точный преподаватель',
+      'teacher',
+    );
+    final subject = await data
+        .collection('subjects')
+        .create(body: {'name': 'Математика', 'normalized_name': 'математика'});
+    final group = await data
+        .collection('groups')
+        .create(body: {'name': 'ПР-1', 'normalized_name': 'пр-1'});
+    assignmentId =
+        (await data
+                .collection('assignments')
+                .create(
+                  body: {
+                    'teacher': queryTeacherId,
+                    'subject': subject.id,
+                    'group': group.id,
+                    'academic_year': 2026,
+                  },
+                ))
+            .id;
     store = PocketBaseStore(data.baseURL, 'service@example.invalid', password);
     server = await shelf_io.serve(
       createHandler(store, allowedOrigins: {origin}),
@@ -277,6 +300,115 @@ void main() {
           body: {'userId': teacherId, 'password': password},
         )).statusCode,
         401,
+      );
+    },
+  );
+
+  test(
+    'teacher and admin queries return exact separated totals and enforce scope',
+    () async {
+      Future<String> login(String id) async => session(
+        await request(
+          'POST',
+          '/api/auth/login',
+          body: {'userId': id, 'password': password},
+        ),
+      );
+      final teacher = await login(queryTeacherId);
+      final admin = await login(adminId);
+      final periods = await request(
+        'GET',
+        '/api/teacher/periods',
+        cookie: teacher,
+        requestOrigin: null,
+      );
+      expect(periods.statusCode, 200);
+      expect((jsonDecode(periods.body)['periods'] as List), hasLength(11));
+      final initial = await request(
+        'GET',
+        '/api/reports/$queryTeacherId/2026/9',
+        cookie: teacher,
+        requestOrigin: null,
+      );
+      expect(initial.statusCode, 200);
+      final empty = jsonDecode(initial.body) as Map<String, dynamic>;
+      expect(empty['revision'], 0);
+      expect(empty['entries'][0]['assignment']['id'], assignmentId);
+      expect(empty['totals']['grandTotal'], '0');
+      expect(
+        (await request(
+          'GET',
+          '/api/reports/$teacherId/2026/9',
+          cookie: teacher,
+          requestOrigin: null,
+        )).statusCode,
+        403,
+      );
+      await data.send(
+        '/api/internal/report-write',
+        method: 'POST',
+        body: {
+          'teacher': queryTeacherId,
+          'year': 2026,
+          'month': 9,
+          'status': 'submitted',
+          'submitted_at': null,
+          'confirmed_at': null,
+          'confirmed_by': null,
+          'expected_revision': 0,
+          'entries': [
+            {
+              'id': null,
+              'assignment': assignmentId,
+              'lecture_hours': '0.1',
+              'practical_hours': '0.2',
+              'course_project_hours':
+                  '0.123456789012345678901234567890123456789',
+              'consultation_hours': '0',
+              'additional_assessment_hours': '0',
+              'exam_hours': '0',
+            },
+          ],
+          'substitutions': [
+            {
+              'id': null,
+              'date': '2026-09-05',
+              'description': 'Замена',
+              'hours': '0.000000000000000000000000000000000001',
+            },
+          ],
+        },
+      );
+      final response = await request(
+        'GET',
+        '/api/reports/$queryTeacherId/2026/9',
+        cookie: teacher,
+        requestOrigin: null,
+      );
+      expect(response.statusCode, 200, reason: response.body);
+      final value = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(
+        value['totals']['assignmentTotal'],
+        '0.423456789012345678901234567890123456789',
+      );
+      expect(
+        value['totals']['substitutionTotal'],
+        '0.000000000000000000000000000000000001',
+      );
+      expect(
+        value['totals']['grandTotal'],
+        '0.423456789012345678901234567890123457789',
+      );
+      final overview = await request(
+        'GET',
+        '/api/admin/reports?year=2026&month=9&status=submitted',
+        cookie: admin,
+        requestOrigin: null,
+      );
+      expect(overview.statusCode, 200);
+      expect(
+        (jsonDecode(overview.body)['teachers'] as List).single['id'],
+        queryTeacherId,
       );
     },
   );
