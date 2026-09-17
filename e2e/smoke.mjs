@@ -47,7 +47,15 @@ try {
         body: JSON.stringify({userId: admin.id, password: 'Task23-pass-123'}), credentials: 'include',
       });
       if (!login.ok) throw new Error(`admin login failed: ${login.status}`);
-      return (await fetch('http://127.0.0.1:18080/api/admin/periods', {credentials: 'include'}).then(r => r.json())).periods.length;
+      const periods = await fetch('http://127.0.0.1:18080/api/admin/periods', {credentials: 'include'}).then(r => r.json());
+      const period = periods.periods[0];
+      const overview = await fetch(`http://127.0.0.1:18080/api/admin/reports?year=${period.year}&month=${period.month}&status=submitted`, {credentials: 'include'}).then(r => r.json());
+      const teacher = overview.teachers[0];
+      if (!teacher) throw new Error('submitted report is missing');
+      const report = await fetch(`http://127.0.0.1:18080/api/reports/${teacher.id}/${period.year}/${period.month}`, {credentials: 'include'}).then(r => r.json());
+      const returned = await fetch(`http://127.0.0.1:18080/api/admin/reports/${teacher.id}/${period.year}/${period.month}/return`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({revision: report.revision}), credentials: 'include'});
+      if (!returned.ok || (await returned.json()).status !== 'draft') throw new Error('return failed');
+      return periods.periods.length;
     });
     await adminContext.close();
     if (adminResult === 0) throw new Error('admin periods are empty');
