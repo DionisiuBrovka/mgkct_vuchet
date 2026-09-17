@@ -1,16 +1,15 @@
 // Storage invariants for direct PB administration. Shelf owns workflow.
 function fail(message) { throw new BadRequestError(message) }
-function normalized(value) {
-  if (typeof value !== "string") fail("Name is required")
-  const result = value.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase()
-  if (!result) fail("Name is required")
-  return result
-}
 function used(app, collection, field, id) {
   return app.findRecordsByFilter(collection, field + " = {:id}", "", 1, 0, {id}).length > 0
 }
-onRecordValidate((e) => {
-  e.record.set("normalized_name", normalized(e.record.getString("name")))
+// Write the derived key before PocketBase's required-field validation.
+onRecordCreate((e) => {
+  e.record.set("normalized_name", e.record.getString("name").trim().replace(/\s+/g, " ").toLowerCase())
+  e.next()
+}, "subjects", "groups")
+onRecordUpdate((e) => {
+  e.record.set("normalized_name", e.record.getString("name").trim().replace(/\s+/g, " ").toLowerCase())
   e.next()
 }, "subjects", "groups")
 onRecordCreate((e) => {
