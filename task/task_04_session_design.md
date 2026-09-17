@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -144,4 +144,13 @@ git diff --check -- task/
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+2026-09-17 создан [session_contract.md](session_contract.md): opaque
+HttpOnly-cookie для HTTP LAN, закрытый PB registry с hash credential,
+`is_active`/`auth_version`, сроки 12 часов idle / 30 суток absolute,
+login/restore/logout/revoke и Origin-защита state-changing запросов. Q4 принят
+владельцем и ранее записан в [open_questions.md](open_questions.md).
+
+Проверки: вручную пройдена матрица login → restart → block → request →
+relogin и logout → reuse; фактические auth/client/compose paths сверены;
+`git diff --check -- task/` завершилась с exit code 0. Исходный код, базы и
+окружение не менялись; отклонений и новых блокеров нет.
