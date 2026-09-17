@@ -11,6 +11,7 @@ import 'src/api_error.dart';
 import 'src/auth_service.dart';
 import 'src/pocketbase_store.dart';
 import 'src/report_queries.dart';
+import 'src/report_commands.dart';
 
 export 'src/pocketbase_store.dart';
 
@@ -66,6 +67,7 @@ Handler createHandler(
 }) {
   final service = auth ?? AuthService(store);
   final queries = ReportQueries(store);
+  final commands = ReportCommands(store, queries);
   final attempts = <String, List<DateTime>>{};
   final router = Router()
     ..get('/api/health', (Request _) async {
@@ -153,6 +155,57 @@ Handler createHandler(
         ),
       );
     })
+    ..put(
+      '/api/teacher/reports/<year>/<month>',
+      (Request request, String year, String month) async => jsonResponse(
+        await commands.save(
+          request.context['actor'] as Actor,
+          int.tryParse(year) ?? -1,
+          int.tryParse(month) ?? -1,
+          await jsonBody(request),
+          submit: false,
+        ),
+      ),
+    )
+    ..post(
+      '/api/teacher/reports/<year>/<month>/submit',
+      (Request request, String year, String month) async => jsonResponse(
+        await commands.save(
+          request.context['actor'] as Actor,
+          int.tryParse(year) ?? -1,
+          int.tryParse(month) ?? -1,
+          await jsonBody(request),
+          submit: true,
+        ),
+      ),
+    )
+    ..post('/api/admin/reports/<teacher>/<year>/<month>/<action>', (
+      Request request,
+      String teacher,
+      String year,
+      String month,
+      String action,
+    ) async {
+      final body = await jsonBody(request);
+      if (body.keys.length != 1 ||
+          body['revision'] is! int ||
+          (action != 'confirm' && action != 'return'))
+        throw const ApiError(
+          422,
+          'Некорректный запрос',
+          code: 'invalid_request',
+        );
+      return jsonResponse(
+        await commands.transition(
+          request.context['actor'] as Actor,
+          teacher,
+          int.tryParse(year) ?? -1,
+          int.tryParse(month) ?? -1,
+          body['revision'] as int,
+          confirm: action == 'confirm',
+        ),
+      );
+    })
     ..post('/api/auth/logout', (Request request) async {
       await jsonBody(request);
       await service.logout(sessionCookie(request) ?? '');
@@ -223,12 +276,23 @@ Handler createHandler(
       if (error.status == 401)
         response = response.change(headers: {'set-cookie': clearCookie});
     } on ClientException catch (error) {
-      response = jsonResponse({
-        'error': {
-          'code': 'storage_unavailable',
-          'message': 'Хранилище временно недоступно',
-        },
-      }, error.statusCode == 504 ? 504 : 502);
+      response = error.statusCode == 409
+          ? jsonResponse({
+              'error': {
+                'code': 'revision_conflict',
+                'message': 'Отчёт уже изменён. Обновите данные.',
+              },
+            }, 409)
+          : jsonResponse({
+              'error': {
+                'code': error.statusCode == 504
+                    ? 'storage_timeout'
+                    : 'storage_unavailable',
+                'message': error.statusCode == 504
+                    ? 'Сервер не ответил вовремя'
+                    : 'Хранилище временно недоступно',
+              },
+            }, error.statusCode == 504 ? 504 : 502);
     } on TimeoutException {
       response = jsonResponse({
         'error': {

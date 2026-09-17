@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -147,4 +147,12 @@ git diff --check
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+Добавлен `ReportCommands` и новые save/submit/confirm/return routes. Shelf
+строго принимает DTO, проверяет current period/owner/assignment composition,
+canonical decimal/date/description/IDs, exact totals and workflow, затем
+передаёт полный aggregate и expected revision в Task 10. Confirm/return не
+принимают детей; successful storage conflicts возвращаются 409, не 502.
+
+Isolated integration fixture проверяет save, stale revision, submit and return;
+предыдущие query/auth tests остаются зелёными. 2026-09-17: format/analyze/test
+exit 0 (4 server tests), PB unittest exit 0 (3), `git diff --check` exit 0.

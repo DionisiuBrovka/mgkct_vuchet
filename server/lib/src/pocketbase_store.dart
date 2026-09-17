@@ -82,9 +82,11 @@ class PocketBaseStore {
     }
   }
 
-  Future<void> writeReport(Map<String, dynamic> body) => _call((pb) async {
-    await pb.send('/api/internal/report-write', method: 'POST', body: body);
-  });
+  Future<Map<String, dynamic>> writeReport(Map<String, dynamic> body) => _call(
+    (pb) async => Map<String, dynamic>.from(
+      await pb.send('/api/internal/report-write', method: 'POST', body: body),
+    ),
+  );
 
   Future<Map<String, dynamic>> login(String userId, String password) async {
     RecordModel user;

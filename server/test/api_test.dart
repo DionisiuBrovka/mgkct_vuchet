@@ -412,4 +412,81 @@ void main() {
       );
     },
   );
+
+  test('save, submit, return and confirm use one revision each', () async {
+    Future<String> login(String id) async => session(
+      await request(
+        'POST',
+        '/api/auth/login',
+        body: {'userId': id, 'password': password},
+      ),
+    );
+    final teacher = await login(queryTeacherId);
+    final admin = await login(adminId);
+    final body = {
+      'revision': 0,
+      'entries': [
+        {
+          'id': null,
+          'assignmentId': assignmentId,
+          'lectureHours': '1',
+          'practicalHours': '0',
+          'courseProjectHours': '0',
+          'consultationHours': '0',
+          'additionalAssessmentHours': '0',
+          'examHours': '0',
+        },
+      ],
+      'substitutions': [],
+    };
+    final saved = await request(
+      'PUT',
+      '/api/teacher/reports/2026/10',
+      cookie: teacher,
+      body: body,
+    );
+    expect(saved.statusCode, 200, reason: saved.body);
+    final one = jsonDecode(saved.body) as Map<String, dynamic>;
+    expect(
+      (await request(
+        'PUT',
+        '/api/teacher/reports/2026/10',
+        cookie: teacher,
+        body: body,
+      )).statusCode,
+      409,
+    );
+    final entry = (one['entries'] as List).single as Map<String, dynamic>;
+    final next = {
+      ...body,
+      'revision': one['revision'],
+      'entries': [
+        {
+          'id': entry['id'],
+          'assignmentId': assignmentId,
+          'lectureHours': '1',
+          'practicalHours': '0',
+          'courseProjectHours': '0',
+          'consultationHours': '0',
+          'additionalAssessmentHours': '0',
+          'examHours': '0',
+        },
+      ],
+    };
+    final submitted = await request(
+      'POST',
+      '/api/teacher/reports/2026/10/submit',
+      cookie: teacher,
+      body: next,
+    );
+    expect(submitted.statusCode, 200, reason: submitted.body);
+    final two = jsonDecode(submitted.body) as Map<String, dynamic>;
+    final returned = await request(
+      'POST',
+      '/api/admin/reports/$queryTeacherId/2026/10/return',
+      cookie: admin,
+      body: {'revision': two['revision']},
+    );
+    expect(returned.statusCode, 200, reason: returned.body);
+  });
 }
