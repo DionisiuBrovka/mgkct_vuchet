@@ -4,7 +4,9 @@ migrate((app) => {
   users.fields.getByName("name").required = true
   users.fields.getByName("name").presentable = true
   users.fields.add(new SelectField({name: "role", required: true, maxSelect: 1, values: ["teacher", "admin"]}))
-  users.fields.add(new BoolField({name: "is_active", required: true}))
+  // PocketBase treats a required false boolean as blank, so the create hook
+  // supplies the true default while administrators remain able to block users.
+  users.fields.add(new BoolField({name: "is_active"}))
   users.fields.add(new NumberField({name: "auth_version", required: true, onlyInt: true, min: 1}))
   for (const rule of ["listRule", "viewRule", "createRule", "updateRule", "deleteRule", "manageRule"]) users[rule] = null
   app.save(users)

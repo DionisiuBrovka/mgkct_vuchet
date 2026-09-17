@@ -24,10 +24,7 @@ Future<void> main() async {
     createHandler(
       store,
       staticDirectory: env['STATIC_DIR'],
-      allowedOrigins: (env['ALLOWED_ORIGINS'] ?? '')
-          .split(',')
-          .where((s) => s.isNotEmpty)
-          .toSet(),
+      allowedOrigins: {required('PUBLIC_ORIGIN')},
     ),
     env['HOST'] ?? '127.0.0.1',
     int.parse(env['PORT'] ?? '8080'),

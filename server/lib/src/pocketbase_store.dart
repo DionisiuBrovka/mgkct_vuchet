@@ -48,6 +48,40 @@ class PocketBaseStore {
   Future<RecordModel> get(String collection, String id) =>
       _call((pb) => pb.collection(collection).getOne(id));
 
+  Future<RecordModel> createSession(Map<String, dynamic> body) =>
+      _call((pb) => pb.collection('app_sessions').create(body: body));
+
+  Future<RecordModel> update(
+    String collection,
+    String id,
+    Map<String, dynamic> body,
+  ) => _call((pb) => pb.collection(collection).update(id, body: body));
+
+  /// Uses a fresh client because user authentication must never share request
+  /// state with the service account or another browser session.
+  Future<void> verifyPassword(
+    String email,
+    String password,
+    String expectedId,
+  ) async {
+    final client = PocketBase(url);
+    try {
+      final auth = await client
+          .collection('users')
+          .authWithPassword(email, password)
+          .timeout(const Duration(seconds: 15));
+      if (auth.record.id != expectedId) {
+        throw const ApiError(
+          401,
+          'Неверное имя или пароль',
+          code: 'invalid_credentials',
+        );
+      }
+    } finally {
+      client.close();
+    }
+  }
+
   Future<void> writeReport(Map<String, dynamic> body) => _call((pb) async {
     await pb.send('/api/internal/report-write', method: 'POST', body: body);
   });

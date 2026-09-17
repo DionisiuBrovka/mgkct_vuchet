@@ -8,25 +8,31 @@ import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_static/shelf_static.dart';
 
 import 'src/api_error.dart';
+import 'src/auth_service.dart';
 import 'src/pocketbase_store.dart';
-import 'src/report_service.dart';
+
 export 'src/pocketbase_store.dart';
 
 Response jsonResponse(Object value, [int status = 200]) => Response(
   status,
   body: jsonEncode(value),
-  headers: {
+  headers: const {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
   },
 );
 
 Future<Map<String, dynamic>> jsonBody(Request request) async {
+  if (request.headers['content-type']?.split(';').first != 'application/json')
+    throw const ApiError(400, 'Ожидается JSON', code: 'invalid_content_type');
   final bytes = <int>[];
   await for (final chunk in request.read()) {
-    if (bytes.length + chunk.length > 1024 * 1024) {
-      throw const ApiError(413, 'Слишком большой запрос');
-    }
+    if (bytes.length + chunk.length > 1024 * 1024)
+      throw const ApiError(
+        413,
+        'Слишком большой запрос',
+        code: 'payload_too_large',
+      );
     bytes.addAll(chunk);
   }
   try {
@@ -34,173 +40,172 @@ Future<Map<String, dynamic>> jsonBody(Request request) async {
     if (value is! Map<String, dynamic>) throw const FormatException();
     return value;
   } on FormatException {
-    throw const ApiError(400, 'Некорректный JSON');
+    throw const ApiError(400, 'Некорректный JSON', code: 'malformed_json');
   }
 }
+
+String? sessionCookie(Request request) {
+  for (final part in (request.headers['cookie'] ?? '').split(';')) {
+    final pair = part.trim().split('=');
+    if (pair.length == 2 && pair.first == 'mgkct_session') return pair.last;
+  }
+  return null;
+}
+
+String cookie(String value, int maxAge) =>
+    'mgkct_session=$value; Path=/api; HttpOnly; SameSite=Strict; Max-Age=$maxAge';
+const clearCookie =
+    'mgkct_session=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0';
 
 Handler createHandler(
   PocketBaseStore store, {
   String? staticDirectory,
   Set<String> allowedOrigins = const {},
+  AuthService? auth,
 }) {
-  final reports = ReportService(store);
-  Map<String, dynamic> actor(Request request) =>
-      request.context['actor'] as Map<String, dynamic>;
-  int year(String value) =>
-      int.tryParse(value) ?? (throw const ApiError(400, 'Некорректный год'));
-  final router = Router();
-  router.get('/api/health', (Request request) async {
-    await store.health();
-    return jsonResponse({'status': 'ok'});
-  });
-  router.get('/api/auth/users', (Request request) async {
-    final users = await store.list('users');
-    return jsonResponse(
-      [
-        for (final user in users)
-          {'id': user.id, 'name': user.data['display_name']},
-      ]..sort((a, b) => (a['name'] as String).compareTo(b['name'] as String)),
-    );
-  });
+  final service = auth ?? AuthService(store);
   final attempts = <String, List<DateTime>>{};
-  router.post('/api/auth/login', (Request request) async {
-    final now = DateTime.now();
-    attempts.removeWhere(
-      (_, times) =>
-          times.last.isBefore(now.subtract(const Duration(minutes: 1))),
-    );
-    final ip =
-        (request.context['shelf.io.connection_info'] as HttpConnectionInfo?)
-            ?.remoteAddress
-            .address ??
-        'local';
-    if (!attempts.containsKey(ip) && attempts.length >= 10000) {
-      throw const ApiError(
-        429,
-        'Слишком много попыток. Повторите через минуту',
+  final router = Router()
+    ..get('/api/health', (Request _) async {
+      await store.health();
+      return jsonResponse({'status': 'ok'});
+    })
+    ..get(
+      '/api/auth/users',
+      (Request _) async => jsonResponse({'users': await service.directory()}),
+    )
+    ..post('/api/auth/login', (Request request) async {
+      final body = await jsonBody(request);
+      if (body.keys.toSet().difference({'userId', 'password'}).isNotEmpty ||
+          body['userId'] is! String ||
+          body['password'] is! String ||
+          (body['password'] as String).length > 1024)
+        throw const ApiError(
+          400,
+          'Укажите пользователя и пароль',
+          code: 'invalid_request',
+        );
+      final now = DateTime.now();
+      final ip =
+          (request.context['shelf.io.connection_info'] as HttpConnectionInfo?)
+              ?.remoteAddress
+              .address ??
+          'local';
+      final times = attempts.putIfAbsent(ip, () => []);
+      times.removeWhere(
+        (time) => time.isBefore(now.subtract(const Duration(minutes: 1))),
       );
-    }
-    final times = attempts.putIfAbsent(ip, () => []);
-    times.removeWhere(
-      (time) => time.isBefore(now.subtract(const Duration(minutes: 1))),
-    );
-    if (times.length >= 20) {
-      throw const ApiError(
-        429,
-        'Слишком много попыток. Повторите через минуту',
-      );
-    }
-    times.add(now);
-    final body = await jsonBody(request);
-    if (body['profileId'] is! String ||
-        body['password'] is! String ||
-        (body['password'] as String).length > 1024) {
-      throw const ApiError(400, 'Укажите пользователя и пароль');
-    }
-    return jsonResponse(
-      await store.login(
-        body['profileId'] as String,
+      if (times.length >= 20)
+        throw const ApiError(
+          429,
+          'Слишком много попыток. Повторите через минуту',
+          code: 'login_rate_limited',
+        );
+      times.add(now);
+      final result = await service.login(
+        body['userId'] as String,
         body['password'] as String,
-      ),
-    );
-  });
-  router.get('/api/auth/me', (Request request) => jsonResponse(actor(request)));
-  router.get(
-    '/api/teachers/<teacher>/years/<value>',
-    (Request request, String teacher, String value) async => jsonResponse(
-      await reports.statuses(actor(request), teacher, year(value)),
-    ),
-  );
-  router.get(
-    '/api/admin/months/<value>/<month>',
-    (Request request, String value, String month) async => jsonResponse(
-      await reports.overview(
-        actor(request),
-        Uri.decodeComponent(month),
-        year(value),
-      ),
-    ),
-  );
-  router.get(
-    '/api/reports/<teacher>/<value>/<month>',
-    (Request request, String teacher, String value, String month) async =>
-        jsonResponse(
-          await reports.report(
-            actor(request),
-            teacher,
-            Uri.decodeComponent(month),
-            year(value),
-          ),
-        ),
-  );
-  router.post(
-    '/api/reports/<teacher>/<value>/<month>/<action>',
-    (
-      Request request,
-      String teacher,
-      String value,
-      String month,
-      String action,
-    ) async => jsonResponse(
-      await reports.change(
-        actor(request),
-        teacher,
-        Uri.decodeComponent(month),
-        year(value),
-        action,
-        await jsonBody(request),
-      ),
-    ),
-  );
+      );
+      return jsonResponse({'user': result.actor.toJson()}).change(
+        headers: {'set-cookie': cookie(result.credential, result.maxAge)},
+      );
+    })
+    ..get(
+      '/api/auth/me',
+      (Request request) =>
+          jsonResponse({'user': (request.context['actor'] as Actor).toJson()}),
+    )
+    ..post('/api/auth/logout', (Request request) async {
+      await jsonBody(request);
+      await service.logout(sessionCookie(request) ?? '');
+      return Response(
+        204,
+        headers: const {'cache-control': 'no-store', 'set-cookie': clearCookie},
+      );
+    });
   final staticHandler = staticDirectory == null
       ? null
       : createStaticHandler(staticDirectory, defaultDocument: 'index.html');
-
   return (request) async {
     final origin = request.headers['origin'];
     final cors = <String, String>{};
-    if (origin != null && allowedOrigins.contains(origin)) {
+    if (origin != null && allowedOrigins.contains(origin))
       cors.addAll({
         'access-control-allow-origin': origin,
-        'vary': 'Origin',
-        'access-control-allow-headers': 'Authorization, Content-Type',
+        'access-control-allow-credentials': 'true',
+        'access-control-allow-headers': 'Content-Type',
         'access-control-allow-methods': 'GET, POST, OPTIONS',
+        'vary': 'Origin',
       });
-    }
     Response response;
     try {
+      final api = request.url.path.startsWith('api/');
       if (request.method == 'OPTIONS') {
-        response = Response(origin == null || cors.isNotEmpty ? 204 : 403);
-      } else if (!request.url.path.startsWith('api/')) {
+        response = Response(origin != null && cors.isNotEmpty ? 204 : 403);
+      } else if (!api) {
         response = staticHandler == null
             ? Response.notFound('Not found')
             : await staticHandler(request);
       } else {
-        const publicPaths = {'api/health', 'api/auth/users', 'api/auth/login'};
-        if (!publicPaths.contains(request.url.path)) {
-          final header = request.headers['authorization'] ?? '';
-          final user = await store.authenticate(
-            header.startsWith('Bearer ') ? header.substring(7) : '',
+        const writes = {'POST', 'PUT', 'PATCH', 'DELETE'};
+        if (writes.contains(request.method) &&
+            (origin == null || !allowedOrigins.contains(origin)))
+          throw const ApiError(
+            400,
+            'Недопустимый Origin',
+            code: 'invalid_origin',
           );
-          request = request.change(context: {'actor': user});
+        const publicPaths = {
+          'api/health',
+          'api/auth/users',
+          'api/auth/login',
+          'api/auth/logout',
+        };
+        if (!publicPaths.contains(request.url.path)) {
+          final result = await service.restore(sessionCookie(request) ?? '');
+          request = request.change(context: {'actor': result.actor});
+          response = (await router.call(request)).change(
+            headers: {'set-cookie': cookie(result.credential, result.maxAge)},
+          );
+        } else {
+          response = await router.call(request);
         }
-        response = await router.call(request);
-        if (response.statusCode == 404) {
-          response = jsonResponse({'message': 'Маршрут не найден'}, 404);
-        }
+        if (response.statusCode == 404)
+          response = jsonResponse({
+            'error': {
+              'code': 'route_not_found',
+              'message': 'Маршрут не найден',
+            },
+          }, 404);
       }
     } on ApiError catch (error) {
-      response = jsonResponse({'message': error.message}, error.status);
+      response = jsonResponse({
+        'error': {'code': error.code, 'message': error.message},
+      }, error.status);
+      if (error.status == 401)
+        response = response.change(headers: {'set-cookie': clearCookie});
     } on ClientException catch (error) {
-      response = error.statusCode == 409
-          ? jsonResponse({'message': 'Отчёт уже изменён. Обновите данные'}, 409)
-          : jsonResponse({'message': 'Хранилище временно недоступно'}, 502);
+      response = jsonResponse({
+        'error': {
+          'code': 'storage_unavailable',
+          'message': 'Хранилище временно недоступно',
+        },
+      }, error.statusCode == 504 ? 504 : 502);
     } on TimeoutException {
-      response = jsonResponse({'message': 'Сервер не ответил вовремя'}, 504);
+      response = jsonResponse({
+        'error': {
+          'code': 'storage_timeout',
+          'message': 'Сервер не ответил вовремя',
+        },
+      }, 504);
     } catch (error, stack) {
-      // No request bodies, credentials or tokens are logged.
       stderr.writeln('Unhandled server error: ${error.runtimeType}\n$stack');
-      response = jsonResponse({'message': 'Внутренняя ошибка сервера'}, 500);
+      response = jsonResponse({
+        'error': {
+          'code': 'internal_error',
+          'message': 'Внутренняя ошибка сервера',
+        },
+      }, 500);
     }
     return response.change(
       headers: {...cors, 'x-content-type-options': 'nosniff'},

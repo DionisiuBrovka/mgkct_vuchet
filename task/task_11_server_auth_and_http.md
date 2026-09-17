@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -150,4 +150,36 @@ git diff --check
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+Созданы выделенные [auth service](../server/lib/src/auth_service.dart) и
+HTTP-граница в [server.dart](../server/lib/server.dart). Новый публичный
+контракт — `GET /api/health`, `GET /api/auth/users`, `POST /api/auth/login`,
+`GET /api/auth/me`, `POST /api/auth/logout`; legacy bearer-token и legacy
+report routes удалены до реализации Task 12/13. Login отдаёт только `{user}`
+и `mgkct_session` (32 random bytes, HttpOnly, SameSite=Strict, Path=/api), а
+в PB хранится SHA-256 hash. На каждом protected request перечитываются session
+и user, проверяются expiry/idle/revocation/activity/auth_version/role и
+обновляется `last_seen_at`; actor request-local.
+
+Все state-changing routes требуют точного configured `PUBLIC_ORIGIN`; CORS
+разрешает только этот origin с credentials. Ответы API используют JSON error
+envelope, `no-store`, body limit, login rate limit и distinction 401/502/504.
+Logout идемпотентно очищает cookie. Добавлен `crypto`; бинарный entrypoint
+требует `PUBLIC_ORIGIN` по runtime contract.
+
+Добавлен изолированный Shelf+PB integration test
+[server/test/api_test.dart](../server/test/api_test.dart): directory без email/
+roles, Origin/CSRF, login/restore/logout/reuse, отсутствие PB credential в
+response, два независимых actor context, immediate role/version change и block.
+Во время проверки исправлена baseline migration: required Boolean в PocketBase
+считает `false` blank, поэтому `users.is_active` получает default true в hook,
+но остаётся изменяемым в false для блокировки.
+
+Проверки 2026-09-17: `(cd server && dart format --output=none
+--set-exit-if-changed lib bin test)` — exit 0; `(cd server && dart analyze)` —
+exit 0 (12 non-blocking style infos); `(cd server && dart test)` — exit 0,
+2 tests; `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s
+data/pocketbase/tests -v` — exit 0, 3 tests; `git diff --check` — exit 0.
+Ручной QA воспроизведён отдельным HTTP-стендом теста на loopback: две учётные
+записи вошли с разными cookie, PB-admin изменил role/auth_version и is_active,
+следующие `me` дали соответственно 401/clear-cookie; login inactive также 401.
+Temporary PB directory/process уничтожаются tearDown, рабочие данные не менялись.
