@@ -32,6 +32,7 @@ class _AppState extends State<App> {
   void initState() {
     super.initState();
     _authCubit = AuthCubit(getIt());
+    _authCubit.restore();
     _notifier = _RouterNotifier(_authCubit);
 
     _router = GoRouter(
@@ -40,6 +41,7 @@ class _AppState extends State<App> {
         final authState = _authCubit.state;
         final isLoginRoute = state.matchedLocation == '/login';
 
+        if (authState is AuthRestoring) return isLoginRoute ? null : '/login';
         if (authState is! AuthAuthenticated) {
           return isLoginRoute ? null : '/login';
         }

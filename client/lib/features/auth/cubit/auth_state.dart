@@ -12,6 +12,17 @@ class AuthInitial extends AuthState {
   const AuthInitial();
 }
 
+class AuthRestoring extends AuthState {
+  const AuthRestoring();
+}
+
+class AuthRestoreUnavailable extends AuthState {
+  const AuthRestoreUnavailable(this.message);
+  final String message;
+  @override
+  List<Object?> get props => [message];
+}
+
 class AuthLoading extends AuthState {
   const AuthLoading();
 }

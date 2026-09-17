@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -148,4 +148,12 @@ git diff --check
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+AuthRepository/Cubit теперь восстанавливает HttpOnly-cookie через `/auth/me`,
+имеет explicit restoring/unavailable state и operation epoch против поздних
+ответов. App запускает restore до protected redirect; logout вызывает server
+endpoint, немедленно очищает local role и не позволяет late response вернуть
+session. Login использует safe directory/user DTO и не сохраняет password/token.
+
+`flutter analyze` и `flutter test` от 2026-09-17 — exit 0 (5 tests);
+`git diff --check` — exit 0. Existing mock suite подтверждает role routing and
+form preservation; restore implementation использует тот же typed transport.

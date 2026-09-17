@@ -32,5 +32,19 @@ class AuthRepository {
     ];
   }
 
-  void logout() => _api.logout();
+  Future<AppUser> restore() async =>
+      _user((await _api.request('GET', ['auth', 'me'])
+          as Map<String, dynamic>)['user'] as Map<String, dynamic>);
+  Future<void> logout() async {
+    try {
+      await _api.request('POST', ['auth', 'logout'], body: {});
+    } finally {
+      _api.logout();
+    }
+  }
+
+  AppUser _user(Map<String, dynamic> user) => AppUser(
+      id: user['id'] as String,
+      name: user['name'] as String,
+      role: UserRole.values.byName(user['role'] as String));
 }

@@ -11,19 +11,40 @@ class AuthCubit extends Cubit<AuthState> {
   }
   final AuthRepository _repo;
   late final StreamSubscription<void> _expired;
-  Future<void> login(String userId, String password) async {
-    emit(const AuthLoading());
+  int _epoch = 0;
+  Future<void> restore() async {
+    final epoch = ++_epoch;
+    emit(const AuthRestoring());
     try {
-      final user = await _repo.login(userId, password);
-      if (!isClosed) emit(AuthAuthenticated(user));
+      final user = await _repo.restore();
+      if (!isClosed && epoch == _epoch) emit(AuthAuthenticated(user));
     } catch (error) {
-      if (!isClosed) emit(AuthError(error.toString()));
+      if (!isClosed && epoch == _epoch) {
+        final message = error.toString();
+        if (message.contains('401')) {
+          emit(const AuthInitial());
+        } else {
+          emit(AuthRestoreUnavailable(message));
+        }
+      }
     }
   }
 
-  void logout() {
-    _repo.logout();
+  Future<void> login(String userId, String password) async {
+    final epoch = ++_epoch;
+    emit(const AuthLoading());
+    try {
+      final user = await _repo.login(userId, password);
+      if (!isClosed && epoch == _epoch) emit(AuthAuthenticated(user));
+    } catch (error) {
+      if (!isClosed && epoch == _epoch) emit(AuthError(error.toString()));
+    }
+  }
+
+  Future<void> logout() async {
+    ++_epoch;
     emit(const AuthInitial());
+    await _repo.logout();
   }
 
   @override
