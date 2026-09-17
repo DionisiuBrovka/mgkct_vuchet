@@ -29,6 +29,10 @@ try {
       })), substitutions: [{id: null, date: `${period.year}-09-01`, description: 'E2E замена', hours: '0.3'}]};
       const saved = await fetch(`http://127.0.0.1:18080/api/teacher/reports/${period.year}/${period.month}`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(input), credentials: 'include'});
       if (!saved.ok) throw new Error(`save failed: ${saved.status}`);
+      const savedReport = await saved.json();
+      const submitted = await fetch(`http://127.0.0.1:18080/api/teacher/reports/${period.year}/${period.month}/submit`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({...input, revision: savedReport.revision}), credentials: 'include'});
+      if (!submitted.ok) throw new Error(`submit failed: ${submitted.status}`);
+      if ((await submitted.json()).status !== 'submitted') throw new Error('report was not submitted');
       return periods.periods.length;
     }, process.env.E2E_PASSWORD);
     if (result !== 11) throw new Error(`expected 11 teacher periods, got ${result}`);
