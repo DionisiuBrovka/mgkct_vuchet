@@ -51,8 +51,30 @@ class AdminCubit extends Cubit<AdminState> {
         'Июль': 7
       }[month] ??
       9;
-  Future<void> confirm() async =>
-      emit(const AdminError('Обновите отчёт перед подтверждением'));
-  Future<void> reject() async =>
-      emit(const AdminError('Обновите отчёт перед возвратом'));
+  Future<void> confirm() => _transition('confirm');
+  Future<void> reject() => _transition('return');
+  Future<void> _transition(String action) async {
+    final loaded = state;
+    if (loaded is! AdminReviewLoaded ||
+        loaded.isUpdating ||
+        loaded.report.status != ReportStatus.submitted) {
+      return;
+    }
+    emit(AdminReviewLoaded(loaded.report, isUpdating: true));
+    try {
+      final report = await _repo.transition(
+          loaded.report.teacher.id,
+          loaded.report.year,
+          loaded.report.month,
+          loaded.report.revision,
+          action);
+      if (!isClosed) {
+        emit(AdminReviewLoaded(report, completed: true));
+      }
+    } catch (error) {
+      if (!isClosed) {
+        emit(AdminReviewLoaded(loaded.report, error: error.toString()));
+      }
+    }
+  }
 }

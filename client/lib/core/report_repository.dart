@@ -18,6 +18,11 @@ class ReportRepository {
       ReportDto.fromJson(await _api.request(
           'POST', ['teacher', 'reports', '$year', '$month', 'submit'],
           body: input) as Map<String, dynamic>);
+  Future<ReportDto> transition(String teacher, int year, int month,
+          int revision, String action) async =>
+      ReportDto.fromJson(await _api.request(
+          'POST', ['admin', 'reports', teacher, '$year', '$month', action],
+          body: {'revision': revision}) as Map<String, dynamic>);
   Future<List<Map<String, dynamic>>> teacherPeriods() async =>
       List<Map<String, dynamic>>.from(
           (await _api.request('GET', ['teacher', 'periods'])

@@ -48,7 +48,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 child: ListTile(
                     title: Text(
                         '${entry.assignment.subject} · ${entry.assignment.group}'),
-                    subtitle: Text('Итого: ${entry.total} ч'))),
+                    subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final item in entry.hours.entries)
+                            Text(
+                                '${_hourName(item.key)}: ${item.value.value} ч',
+                                style: TextStyle(
+                                    color: item.value.value == '0'
+                                        ? Theme.of(context).disabledColor
+                                        : null)),
+                          Text('Итого: ${entry.total.value} ч'),
+                        ]))),
           const SizedBox(height: 12),
           Text('Итого назначений: ${report.totals['assignmentTotal']} ч'),
           Text('Итого замен: ${report.totals['substitutionTotal']} ч'),
@@ -76,3 +87,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
         ]);
       }));
 }
+
+String _hourName(String key) =>
+    const {
+      'lectureHours': 'Лекции',
+      'practicalHours': 'ЛР/ПР',
+      'courseProjectHours': 'Курсовые проекты',
+      'consultationHours': 'Консультации',
+      'additionalAssessmentHours': 'Дополнительный контроль',
+      'examHours': 'Экзамены',
+    }[key] ??
+    key;
