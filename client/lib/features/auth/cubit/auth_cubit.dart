@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../core/api_service.dart';
 import '../repository/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -21,7 +23,7 @@ class AuthCubit extends Cubit<AuthState> {
     } catch (error) {
       if (!isClosed && epoch == _epoch) {
         final message = error.toString();
-        if (message.contains('401')) {
+        if (error is ApiException && error.status == 401) {
           emit(const AuthInitial());
         } else {
           emit(AuthRestoreUnavailable(message));
