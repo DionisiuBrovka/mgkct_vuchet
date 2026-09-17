@@ -1,11 +1,11 @@
 {
-    "name": "mgkct_teaching_hours",
-    "short_name": "mgkct_teaching_hours",
+    "name": "Вычитка — учёт учебной нагрузки",
+    "short_name": "Вычитка",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Учёт учебной нагрузки преподавателей.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
