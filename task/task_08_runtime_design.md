@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -145,4 +145,9 @@ git diff --check -- task/
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+2026-09-17 создан [runtime_contract.md](runtime_contract.md): фиксированные
+tool/runtime values, Podman-only topology, same-origin HTTP LAN/session rules,
+environment/volume contract и check/deploy/self-test/reset semantics. Podman
+5.8.4/PB 0.40.1 SHA подтверждены; Docker отсутствует; GitHub runner не
+заявлен проверенным из-за local SSH host-key failure. `git diff --check --
+task/` завершилась с exit code 0; implementation оставлена Task 22/25/26.
