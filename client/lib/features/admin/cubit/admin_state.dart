@@ -16,10 +16,14 @@ class AdminLoading extends AdminState {
 }
 
 class AdminMonthLoaded extends AdminState {
-  const AdminMonthLoaded(this.teachers);
+  const AdminMonthLoaded(this.teachers,
+      {required this.year, required this.month, this.query = '', this.status});
   final List<AdminTeacherDto> teachers;
+  final int year, month;
+  final String query;
+  final ReportStatus? status;
   @override
-  List<Object?> get props => [teachers];
+  List<Object?> get props => [teachers, year, month, query, status];
 }
 
 class AdminReviewLoaded extends AdminState {

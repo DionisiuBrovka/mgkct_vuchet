@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../core/domain.dart';
 import '../../../core/report_repository.dart';
 import 'admin_state.dart';
 
@@ -6,12 +8,17 @@ class AdminCubit extends Cubit<AdminState> {
   AdminCubit(this._repo) : super(const AdminInitial());
   final ReportRepository _repo;
   int _request = 0;
-  Future<void> loadMonth(String month, int year) async {
+  Future<void> loadMonth(int month, int year,
+      {String query = '', ReportStatus? status}) async {
     final request = ++_request;
     emit(const AdminLoading());
     try {
-      final teachers = await _repo.adminReports(year, _month(month));
-      if (!isClosed && request == _request) emit(AdminMonthLoaded(teachers));
+      final teachers = await _repo.adminReports(year, month,
+          query: query.trim().isEmpty ? null : query.trim(), status: status);
+      if (!isClosed && request == _request) {
+        emit(AdminMonthLoaded(teachers,
+            year: year, month: month, query: query, status: status));
+      }
     } catch (error) {
       if (!isClosed && request == _request) emit(AdminError(error.toString()));
     }

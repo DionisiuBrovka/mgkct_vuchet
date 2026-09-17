@@ -21,6 +21,8 @@ class AdminHomeScreen extends StatefulWidget {
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
   late String _selectedMonth;
   late int _academicYear;
+  String _query = '';
+  ReportStatus? _status;
 
   // Календарный год выбранного месяца (определяется автоматически)
   int get _calendarYear =>
@@ -57,8 +59,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     return map[m] ?? 'Сентябрь';
   }
 
-  void _load() =>
-      context.read<AdminCubit>().loadMonth(_selectedMonth, _calendarYear);
+  void _load() => context.read<AdminCubit>().loadMonth(
+      _monthRuToNum(_selectedMonth), _calendarYear,
+      query: _query, status: _status);
+
+  int _monthRuToNum(String month) => const {
+        'Сентябрь': 9,
+        'Октябрь': 10,
+        'Ноябрь': 11,
+        'Декабрь': 12,
+        'Январь': 1,
+        'Февраль': 2,
+        'Март': 3,
+        'Апрель': 4,
+        'Май': 5,
+        'Июнь': 6,
+        'Июль': 7,
+      }[month]!;
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +152,39 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Row(children: [
+              Expanded(
+                  child: TextField(
+                decoration: const InputDecoration(
+                    labelText: 'Поиск по ФИО', prefixIcon: Icon(Icons.search)),
+                onChanged: (value) {
+                  setState(() => _query = value);
+                  _load();
+                },
+              )),
+              const SizedBox(width: 12),
+              DropdownButton<ReportStatus?>(
+                value: _status,
+                hint: const Text('Все статусы'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Все')),
+                  ...ReportStatus.values.map((value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(switch (value) {
+                        ReportStatus.draft => 'Черновик',
+                        ReportStatus.submitted => 'На проверке',
+                        ReportStatus.confirmed => 'Подтверждён',
+                      }))),
+                ],
+                onChanged: (value) {
+                  setState(() => _status = value);
+                  _load();
+                },
+              ),
+            ]),
+          ),
           Expanded(
             child: BlocBuilder<AdminCubit, AdminState>(
               builder: (ctx, state) {
@@ -142,7 +192,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (state is AdminError) {
-                  return Center(child: Text(state.message));
+                  return Center(
+                      child: TextButton(
+                          onPressed: _load,
+                          child: Text('Повторить: ${state.message}')));
                 }
                 final loaded = state as AdminMonthLoaded;
                 final teachers = loaded.teachers;
