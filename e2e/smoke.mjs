@@ -36,6 +36,21 @@ try {
       return periods.periods.length;
     }, process.env.E2E_PASSWORD);
     if (result !== 11) throw new Error(`expected 11 teacher periods, got ${result}`);
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    await adminPage.goto(baseURL, { waitUntil: 'networkidle' });
+    const adminResult = await adminPage.evaluate(async () => {
+      const users = await fetch('http://127.0.0.1:18080/api/auth/users').then(r => r.json());
+      const admin = users.users.find(user => user.name === 'Тестовый завуч');
+      const login = await fetch('http://127.0.0.1:18080/api/auth/login', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({userId: admin.id, password: 'Task23-pass-123'}), credentials: 'include',
+      });
+      if (!login.ok) throw new Error(`admin login failed: ${login.status}`);
+      return (await fetch('http://127.0.0.1:18080/api/admin/periods', {credentials: 'include'}).then(r => r.json())).periods.length;
+    });
+    await adminContext.close();
+    if (adminResult === 0) throw new Error('admin periods are empty');
   }
   console.log(`browser smoke passed: ${baseURL}`);
 } finally {
