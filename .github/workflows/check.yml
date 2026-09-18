@@ -20,11 +20,12 @@ jobs:
           sdk: 3.12.2
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.0
+          flutter-version: 3.44.8
           cache: true
           cache-key: flutter-${{ hashFiles('client/pubspec.lock') }}
-      - name: Verify PocketBase binary
+      - name: Fetch and verify PocketBase binary
         run: |
+          bash scripts/fetch-pocketbase.sh
           test "$(uname -m)" = x86_64
           test "$(sha256sum data/pocketbase/pocketbase | awk '{print $1}')" = bfdc715d14d922f3dfcb8333cc439e7eb1d44ed602456662299bf14f4d6387b8
           data/pocketbase/pocketbase --version | grep -F 0.40.1

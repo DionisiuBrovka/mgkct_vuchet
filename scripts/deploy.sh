@@ -15,6 +15,7 @@ need() { command -v "$1" >/dev/null || die "Missing required tool: $1"; }
 [[ "${1:-up}" == '--help' ]] && { usage; exit 0; }
 need podman
 [[ "$(uname -m)" == x86_64 ]] || die 'PocketBase runtime requires x86_64.'
+bash scripts/fetch-pocketbase.sh
 [[ "$(sha256sum data/pocketbase/pocketbase | awk '{print $1}')" == bfdc715d14d922f3dfcb8333cc439e7eb1d44ed602456662299bf14f4d6387b8 ]] || die 'PocketBase checksum mismatch.'
 cmd="${1:-up}"
 [[ $# -le 1 ]] || die 'Unsupported arguments.'

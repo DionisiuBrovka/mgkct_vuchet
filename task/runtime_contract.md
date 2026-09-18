@@ -10,7 +10,7 @@ x86_64 с Podman 5.8.4; Docker/Compose не поддерживается в эт
 |---|---|---|
 | Flutter | 3.44.8 stable | `flutter --version` |
 | Dart | 3.12.2 | `dart --version` |
-| PocketBase | 0.40.1 linux amd64 | `data/pocketbase/pocketbase --version` |
+| PocketBase | 0.40.1 linux amd64 | `bash scripts/fetch-pocketbase.sh`, затем `data/pocketbase/pocketbase --version` |
 | PB binary SHA-256 | `bfdc715d14d922f3dfcb8333cc439e7eb1d44ed602456662299bf14f4d6387b8` | `sha256sum data/pocketbase/pocketbase` |
 | OS image | Alpine 3.20 for PB; Debian bookworm-slim runtime | explicit version tag, resolved digest recorded by Task 25 build QA |
 | builders | `ghcr.io/cirruslabs/flutter:3.44.0`, `dart:3.12.2-sdk` | exact published tag plus resolved image digest in final Dockerfiles |
@@ -45,10 +45,11 @@ image overrides for tests. Production `.env` is mode 0600 and ignored.
 ## Canonical scripts
 
 `scripts/check.sh [--help]` is local/CI verification entry point. It checks
-tools and versions, formatting, analysis, PB schema tests, server tests/build,
-client tests/release Web build, and the isolated smoke; after Task 23 it also
-runs E2E. Every skipped/missing prerequisite is failure, returns nonzero, and
-the script contains no secrets or persistent data paths.
+tools and versions, downloads the pinned PocketBase binary into an ignored path
+with SHA-256 verification, then runs formatting, analysis, PB schema tests,
+server tests/build and client tests/release Web build. Every skipped/missing
+prerequisite is failure, returns nonzero, and the script contains no secrets or
+persistent data paths.
 
 `scripts/deploy.sh [--help]` is the only Podman deployment entry point. It
 supports `up`, `status`, `logs`, `stop`, `down` and `--self-test`; unsupported

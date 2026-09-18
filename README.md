@@ -29,7 +29,9 @@ bash scripts/check.sh
 ```
 
 Скрипт не читает `.env` и использует временные данные. Он требует Dart, Flutter,
-Python 3 и `data/pocketbase/pocketbase`. CI запускает эту же команду.
+Python 3, `curl` и `unzip`. Закреплённый PocketBase 0.40.1 автоматически
+скачивается в ignored `data/pocketbase/pocketbase` с проверкой SHA-256. CI
+запускает ту же команду.
 
 ## Deploy (Linux x86_64, Podman)
 

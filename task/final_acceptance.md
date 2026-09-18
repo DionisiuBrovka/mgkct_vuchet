@@ -6,7 +6,7 @@
 
 | Требование §21 | Доказательство | Результат |
 |---|---|---|
-| Чистая новая схема PB | `data/pocketbase/tests/test_report_storage.py` в `scripts/check.sh` | пройдено локально |
+| Чистая новая схема PB | `scripts/fetch-pocketbase.sh` (0.40.1 + SHA) и `data/pocketbase/tests/test_report_storage.py` | пройдено локально; CI дефект clean checkout исправлен, ожидается повторный run |
 | Справочники subject/group и relation assignments | `task/data_schema.md`, schema test | пройдено локально |
 | ФИО без двойного ввода | Shelf directory/profile DTO и client tests | пройдено локально |
 | Клиент не знает PB; Shelf владеет правами/валидацией | `client/lib`, server API tests и raw-PB ограничения | пройдено локально |
@@ -17,7 +17,7 @@
 | Прямым запросом нельзя обойти права | изолированный server API test, PB schema test | пройдено локально |
 | Голубой Web UI и LAN | release Web build, Podman self-test и обычный `deploy.sh up` | health прошёл через `192.168.111.11`; второе LAN-устройство не проверено |
 | Тесты, анализ, release-сборки и master-check | `bash scripts/check.sh` — exit 0: schema, format, analyze, server/client tests, server binary, Web build | пройдено локально |
-| CI исполняет тот же набор | `.github/workflows/check.yml` вызывает `scripts/check.sh` | workflow создан, но remote Actions run/artifact не подтверждены |
+| CI исполняет тот же набор | `.github/workflows/check.yml` вызывает `scripts/check.sh` и тот же PB bootstrap | первый run обнаружил clean-checkout defect; исправление локально проверено, нужен повторный remote run/artifact |
 | Воспроизводимый deploy и health | `bash scripts/deploy.sh --self-test` — exit 0, Podman 5.8.4 | пройдено локально; restart app и cleanup подтверждены |
 | Очистка репозитория и актуальные docs | `cleanup_audit.md`, `README.md`, `AGENTS.md`, `.env.example`, `git ls-files` audit | пройдено локально |
 | Запуск по документации на чистой среде | изолированный Podman self-test без `.env` и данных | пройдено локально; полный ручной цикл на отдельной машине не выполнен |

@@ -28,7 +28,7 @@ version_contains() {
 }
 
 for tool in dart flutter python3; do need "$tool"; done
-[[ -x data/pocketbase/pocketbase ]] || { echo "Missing PocketBase binary" >&2; exit 1; }
+bash scripts/fetch-pocketbase.sh
 version_contains dart '3.12.2' --version
 version_contains flutter 'Flutter 3.44.8' --version
 version_contains data/pocketbase/pocketbase '0.40.1' --version
