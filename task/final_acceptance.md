@@ -15,7 +15,7 @@
 | Цикл преподавателя; дробные часы без округления | command tests, `decimal_input_test.dart`, `report_client_test.dart` | пройдено локально |
 | Поиск, просмотр, confirm/return завучем | server lifecycle test и Flutter review tests | пройдено локально |
 | Прямым запросом нельзя обойти права | изолированный server API test, PB schema test | пройдено локально |
-| Голубой Web UI и LAN | release Web build и Podman self-test | локальный health пройден; второе LAN-устройство не проверено |
+| Голубой Web UI и LAN | release Web build, Podman self-test и обычный `deploy.sh up` | health прошёл через `192.168.111.11`; второе LAN-устройство не проверено |
 | Тесты, анализ, release-сборки и master-check | `bash scripts/check.sh` — exit 0: schema, format, analyze, server/client tests, server binary, Web build | пройдено локально |
 | CI исполняет тот же набор | `.github/workflows/check.yml` вызывает `scripts/check.sh` | workflow создан, но remote Actions run/artifact не подтверждены |
 | Воспроизводимый deploy и health | `bash scripts/deploy.sh --self-test` — exit 0, Podman 5.8.4 | пройдено локально; restart app и cleanup подтверждены |

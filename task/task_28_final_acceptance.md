@@ -157,7 +157,8 @@ binary, а противоречащий Podman-only контракту `docker-c
 Статусы завершённых задач 17–22 синхронизированы с их фактическими commit.
 
 На финальном состоянии прошли syntax checks, `bash scripts/check.sh`, help,
-изолированный Podman self-test и `git diff --check`. Задача остаётся
+изолированный Podman self-test, обычный deploy с health через LAN-адрес хоста
+и `git diff --check`. Задача остаётся
 заблокированной, а не выполненной: нет подтверждённого remote GitHub Actions
 run/artifact и ручного цикла со второго LAN-устройства; полный browser E2E
 отдельно исключён прямым решением владельца и отмечен в Task 23.
