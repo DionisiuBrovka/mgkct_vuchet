@@ -64,12 +64,9 @@ temporary credentials and random loopback port; it performs first `up`, health,
 second `up`, health, cleanup. It never reads working `.env`, named volume or
 PB data. Task 25 writes it and records output in deploy QA.
 
-Reset is an explicit development-only command `scripts/deploy.sh reset-dev
---data-dir ABSOLUTE_PATH --confirm RESET_DEVELOPMENT_DATA`. It rejects a missing,
-relative, root, home, repository, volume or unrecognised path; requires marker
-file created by deploy self-test/dev init; stops only its identified temporary
-stack then removes that exact directory. Normal `up` never resets or migrates
-legacy data. First production start requires an empty/new declared volume;
+The current deploy script deliberately has no reset command. Normal `up` never
+resets or migrates legacy data; `down` only removes containers and keeps the
+named volume. First production start requires an empty/new declared volume;
 legacy database migration is not supported.
 
 ## Readiness and operations
