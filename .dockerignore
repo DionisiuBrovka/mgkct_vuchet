@@ -4,15 +4,9 @@
 **/.pub-cache
 **/pb_data
 **/pb_public
-tools
 .env
 .env.*
 client/assets/service_account.json
-client/android
-client/ios
-client/linux
-client/macos
-client/windows
 server/test
 client/test
 data/pocketbase/tests

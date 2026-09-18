@@ -3,13 +3,13 @@ import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/domain.dart';
 import '../../../core/report_repository.dart';
 import '../../../injection.dart';
 import '../../../shared/widgets/month_status_card.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../auth/cubit/auth_state.dart';
 import '../cubit/periods_cubit.dart';
-import '../models/teaching_report_entry.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -129,7 +129,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           };
                           final month = names[period['month']]!;
                           final year = period['year'] as int;
-                          final status = TeachingReportStatus.values
+                          final status = ReportStatus.values
                               .byName(period['status'] as String);
                           return MonthStatusCard(
                             month: month,

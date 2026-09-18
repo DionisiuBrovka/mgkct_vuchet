@@ -23,11 +23,6 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# PocketBase
-tools/pocketbase/pocketbase
-tools/pocketbase/pb_data/
-tools/pocketbase/pb_public/
-
 # Google service account key (must never be committed)
 assets/service_account.json
 
@@ -62,3 +57,10 @@ data/pocketbase/pb_data/
 data/pocketbase/pb_public/
 **/build/
 **/coverage/
+
+# Web-only project: Flutter may generate native plugin stubs locally.
+client/android/
+client/ios/
+client/linux/
+client/macos/
+client/windows/

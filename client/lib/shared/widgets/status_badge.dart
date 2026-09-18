@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-import '../../features/teacher/models/teaching_report_entry.dart';
+import '../../core/domain.dart';
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge(this.status, {super.key});
 
-  final TeachingReportStatus status;
+  final ReportStatus status;
 
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      TeachingReportStatus.draft => ('Черновик', Colors.grey),
-      TeachingReportStatus.submitted => ('На проверке', Colors.orange),
-      TeachingReportStatus.confirmed => ('Подтверждена', Colors.green),
+      ReportStatus.draft => ('Черновик', Colors.grey),
+      ReportStatus.submitted => ('На проверке', Colors.orange),
+      ReportStatus.confirmed => ('Подтверждена', Colors.green),
     };
     final description = switch (status) {
-      TeachingReportStatus.draft =>
+      ReportStatus.draft =>
         'Преподаватель может редактировать отчёт. Завучу он ещё не отправлен.',
-      TeachingReportStatus.submitted =>
+      ReportStatus.submitted =>
         'Отчёт отправлен завучу. Редактирование недоступно до возврата на доработку.',
-      TeachingReportStatus.confirmed =>
-        'Завуч принял отчёт. Доступен только просмотр.',
+      ReportStatus.confirmed => 'Завуч принял отчёт. Доступен только просмотр.',
     };
     return Tooltip(
       message: description,

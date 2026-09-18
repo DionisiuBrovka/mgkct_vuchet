@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/teacher/models/teaching_report_entry.dart';
+import '../../core/domain.dart';
 import 'status_badge.dart';
 
 class MonthStatusCard extends StatelessWidget {
@@ -14,7 +14,7 @@ class MonthStatusCard extends StatelessWidget {
 
   final String month;
   final int year;
-  final TeachingReportStatus status;
+  final ReportStatus status;
   final VoidCallback? onTap;
 
   @override
@@ -25,7 +25,7 @@ class MonthStatusCard extends StatelessWidget {
             borderRadius: BorderRadiusGeometry.circular(12)),
         title: Text('$month $year',
             style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(status == TeachingReportStatus.draft
+        subtitle: Text(status == ReportStatus.draft
             ? 'Открыть и заполнить часы'
             : 'Открыть для просмотра'),
         trailing: StatusBadge(status),

@@ -2,7 +2,7 @@
 
 ## Статус
 
-`не начата`
+`выполнена`
 
 Допустимые статусы: `не начата`, `в работе`, `заблокирована`, `выполнена`.
 
@@ -148,4 +148,14 @@ git diff --check
 
 ## Результат выполнения
 
-Пока не выполнялась. Исполнитель заменяет этот абзац фактическими изменениями, артефактами, командами и результатами проверок, отклонениями и ограничениями.
+Удалены подтверждённо неиспользуемые legacy repository/models и связанные
+Freezed outputs, неиспользуемая review-card, `back.jpg` и native Flutter
+scaffolds. Виджеты статуса переведены на актуальный `ReportStatus`; lockfile
+сохранён, а локальные native stubs, секреты, PB data и build outputs исключены
+из Git/Docker. Удалён машинозависимый VS Code path. Основания и сохранённые
+артефакты перечислены в [cleanup_audit.md](cleanup_audit.md).
+
+Проверки: `flutter pub get`, `flutter analyze`, `flutter test`,
+`flutter build web --release`, schema/server части `bash scripts/check.sh`,
+`git diff --check` — без ошибок. Полный check не включает E2E по отдельному
+решению владельца задачи.

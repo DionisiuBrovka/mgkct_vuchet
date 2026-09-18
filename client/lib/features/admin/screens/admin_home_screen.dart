@@ -7,7 +7,6 @@ import '../../../core/constants.dart';
 import '../../../core/domain.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../auth/cubit/auth_cubit.dart';
-import '../../teacher/models/teaching_report_entry.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
 
@@ -228,8 +227,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                             ReportStatus.confirmed =>
                               'Нажмите, чтобы посмотреть отчёт',
                           }),
-                          trailing: StatusBadge(
-                              TeachingReportStatus.values.byName(status.name)),
+                          trailing: StatusBadge(status),
                           onTap: status == ReportStatus.submitted ||
                                   status == ReportStatus.confirmed
                               ? () async {
