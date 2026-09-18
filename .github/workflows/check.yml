@@ -1,0 +1,41 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.12.2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          cache: true
+          cache-key: flutter-${{ hashFiles('client/pubspec.lock') }}
+      - name: Verify PocketBase binary
+        run: |
+          test "$(uname -m)" = x86_64
+          test "$(sha256sum data/pocketbase/pocketbase | awk '{print $1}')" = bfdc715d14d922f3dfcb8333cc439e7eb1d44ed602456662299bf14f4d6387b8
+          data/pocketbase/pocketbase --version | grep -F 0.40.1
+      - name: Master check
+        run: bash scripts/check.sh
+      - name: Build deployable server artifact
+        run: (cd server && dart compile exe bin/server.dart -o ../artifacts/server)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-and-server-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            client/build/web
+            artifacts/server
