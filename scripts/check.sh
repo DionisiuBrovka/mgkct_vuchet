@@ -36,11 +36,11 @@ version_contains data/pocketbase/pocketbase '0.40.1' --version
 stage 'PocketBase schema tests'
 python3 -m unittest data/pocketbase/tests/test_report_storage.py
 stage 'Server format and tests'
-(cd server && dart format --output=none --set-exit-if-changed lib bin test && dart analyze && dart test)
+(cd server && dart pub get && dart format --output=none --set-exit-if-changed lib bin test && dart analyze && dart test)
 stage 'Server release executable'
 (cd server && dart compile exe bin/server.dart -o "$CHECK_TMP/server")
 stage 'Client format, tests and release build'
-(cd client && dart format --output=none --set-exit-if-changed lib test && flutter analyze && flutter test && flutter build web --release)
+(cd client && flutter pub get && dart format --output=none --set-exit-if-changed lib test && flutter analyze && flutter test && flutter build web --release)
 stage 'Diff whitespace'
 git diff --check
 printf '\nAll local checks passed.\n'
