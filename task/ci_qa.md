@@ -11,5 +11,7 @@ binary в чистом checkout. `35321637803` на `574a54c` после это�
 скрытую зависимость от локального pub cache. Исправления добавляют
 `scripts/fetch-pocketbase.sh` с SHA-256 проверкой и явные `dart pub get` /
 `flutter pub get`; CI и локальный master-check используют тот же bootstrap.
-Повторный remote run и скачивание artifact должны проверяться уже на commit с
-этим исправлением. Workflow не содержит deploy или secrets.
+`35321875207` на `e5d5d69` успешно прошёл master-check, но обнаружил, что
+workflow не создавал `artifacts/` до server compile. Следующий run проверит
+это минимальное исправление и загрузку artifact. Workflow не содержит deploy
+или secrets.

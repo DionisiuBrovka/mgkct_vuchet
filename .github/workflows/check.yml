@@ -32,7 +32,7 @@ jobs:
       - name: Master check
         run: bash scripts/check.sh
       - name: Build deployable server artifact
-        run: (cd server && dart compile exe bin/server.dart -o ../artifacts/server)
+        run: mkdir -p artifacts && (cd server && dart compile exe bin/server.dart -o ../artifacts/server)
       - uses: actions/upload-artifact@v4
         with:
           name: web-and-server-${{ github.sha }}

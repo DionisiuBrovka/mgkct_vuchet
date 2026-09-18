@@ -17,7 +17,7 @@
 | Прямым запросом нельзя обойти права | изолированный server API test, PB schema test | пройдено локально |
 | Голубой Web UI и LAN | release Web build, Podman self-test и обычный `deploy.sh up` | health прошёл через `192.168.111.11`; второе LAN-устройство не проверено |
 | Тесты, анализ, release-сборки и master-check | `bash scripts/check.sh` — exit 0: schema, format, analyze, server/client tests, server binary, Web build | пройдено локально |
-| CI исполняет тот же набор | `.github/workflows/check.yml` вызывает `scripts/check.sh` и тот же PB bootstrap | два clean-checkout дефекта исправлены локально; нужен повторный remote run/artifact |
+| CI исполняет тот же набор | `.github/workflows/check.yml` вызывает `scripts/check.sh` и тот же PB bootstrap | remote master-check зелёный; исправлено создание artifact directory, нужен итоговый run/artifact |
 | Воспроизводимый deploy и health | `bash scripts/deploy.sh --self-test` — exit 0, Podman 5.8.4 | пройдено локально; restart app и cleanup подтверждены |
 | Очистка репозитория и актуальные docs | `cleanup_audit.md`, `README.md`, `AGENTS.md`, `.env.example`, `git ls-files` audit | пройдено локально |
 | Запуск по документации на чистой среде | изолированный Podman self-test без `.env` и данных | пройдено локально; полный ручной цикл на отдельной машине не выполнен |
