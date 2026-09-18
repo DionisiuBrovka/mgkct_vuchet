@@ -13,7 +13,7 @@ x86_64 с Podman 5.8.4; Docker/Compose не поддерживается в эт
 | PocketBase | 0.40.1 linux amd64 | `data/pocketbase/pocketbase --version` |
 | PB binary SHA-256 | `bfdc715d14d922f3dfcb8333cc439e7eb1d44ed602456662299bf14f4d6387b8` | `sha256sum data/pocketbase/pocketbase` |
 | OS image | Alpine 3.20 for PB; Debian bookworm-slim runtime | explicit version tag, resolved digest recorded by Task 25 build QA |
-| builders | `ghcr.io/cirruslabs/flutter:3.44.8`, `dart:3.12.2-sdk` | exact tag plus resolved image digest in final Dockerfiles |
+| builders | `ghcr.io/cirruslabs/flutter:3.44.0`, `dart:3.12.2-sdk` | exact published tag plus resolved image digest in final Dockerfiles |
 | browser E2E | Node 24.18.0 + pinned Playwright | `node --version`, Task 23 lockfile |
 
 Task 25 must fail preflight on non-x86_64 PB binary or SHA mismatch; it must
