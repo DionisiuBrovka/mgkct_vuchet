@@ -30,6 +30,9 @@ class Decimal {
     )._normalized();
   }
 
+  Decimal operator -(Decimal other) =>
+      this + Decimal(-other.coefficient, other.scale);
+
   Decimal _normalized() {
     var value = coefficient;
     var digits = scale;
@@ -43,10 +46,11 @@ class Decimal {
   @override
   String toString() {
     final value = _normalized();
-    final raw = value.coefficient.toString();
-    if (value.scale == 0) return raw;
+    final raw = value.coefficient.abs().toString();
+    final sign = value.coefficient.isNegative ? '-' : '';
+    if (value.scale == 0) return '$sign$raw';
     final padded = raw.padLeft(value.scale + 1, '0');
-    return '${padded.substring(0, padded.length - value.scale)}.${padded.substring(padded.length - value.scale)}';
+    return '$sign${padded.substring(0, padded.length - value.scale)}.${padded.substring(padded.length - value.scale)}';
   }
 }
 

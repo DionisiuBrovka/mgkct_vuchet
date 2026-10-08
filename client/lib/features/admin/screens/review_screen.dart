@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain.dart';
+import '../../../shared/widgets/assignment_progress.dart';
 import '../cubit/admin_cubit.dart';
 import '../cubit/admin_state.dart';
 
@@ -58,7 +59,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                     color: item.value.value == '0'
                                         ? Theme.of(context).disabledColor
                                         : null)),
-                          Text('Итого: ${entry.total.value} ч'),
+                          Text('Итого за месяц: ${entry.total.value} ч'),
+                          if (entry.assignment.progress != null)
+                            AssignmentProgressView(
+                                progress: entry.assignment.progress!,
+                                academicYear: report.month >= 9
+                                    ? report.year
+                                    : report.year - 1),
                         ]))),
           const SizedBox(height: 12),
           Text('Итого назначений: ${report.totals['assignmentTotal']} ч'),

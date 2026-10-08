@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain.dart';
 import '../../../shared/widgets/hours_input_field.dart';
+import '../../../shared/widgets/assignment_progress.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../auth/cubit/auth_state.dart';
 import '../cubit/teaching_report_cubit.dart';
@@ -210,7 +211,17 @@ class _EntryCard extends StatelessWidget {
                             .read<TeachingReportCubit>()
                             .updateValue(entry.assignment.id, field, value)))
             ]),
-            Text('Итого: ${editor.totalFor(entry).canonical} ч'),
+            Text('Итого за месяц: ${editor.totalFor(entry).canonical} ч'),
+            if (entry.assignment.progress != null)
+              AssignmentProgressView(
+                  progress: entry.assignment.progress!,
+                  academicYear: editor.report.month >= 9
+                      ? editor.report.year
+                      : editor.report.year - 1,
+                  currentMain: editor.categoryFor(entry, additional: false),
+                  currentAdditional:
+                      editor.categoryFor(entry, additional: true),
+                  editing: !locked),
           ])));
 }
 

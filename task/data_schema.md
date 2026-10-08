@@ -71,11 +71,17 @@ assignment. Используемый subject/group неизменяем: для 
 | `subject` | required one relation → `subjects`, `cascadeDelete=false` |
 | `group` | required one relation → `groups`, `cascadeDelete=false` |
 | `academic_year` | required integer Number, `2000..2100`; год начала учебного года |
+| `planned_main_hours` | optional Text, canonical nonnegative decimal string; пусто = план не задан |
+| `planned_additional_hours` | optional Text, canonical nonnegative decimal string; пусто = план не задан |
 
 Unique index `uq_assignment(teacher, subject, group, academic_year)` исключает
 дубль четверки. Hook проверяет, что `teacher.role == teacher`. Когда assignment
 уже связана хотя бы с одной `teaching_report_entries`, менять или удалять любое
-смысловое поле запрещено. Новая assignment создаётся отдельной записью.
+поле идентичности (teacher, subject, group, academic_year) запрещено.
+Плановые часы можно заполнять и исправлять в PB admin UI: это актуальный план,
+а не часть сохранённого месячного отчёта. Новая миграция
+`1791000000000_assignment_plans.js` добавляет поля без изменения старых данных
+и применённой baseline-миграции.
 
 ### `teaching_reports`
 

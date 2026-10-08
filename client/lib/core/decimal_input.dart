@@ -28,8 +28,11 @@ class DecimalInput {
     );
   }
 
-  bool get exceeds999 =>
-      coefficient > BigInt.from(999) * BigInt.from(10).pow(scale);
+  int compareTo(DecimalInput other) {
+    final common = scale > other.scale ? scale : other.scale;
+    return (coefficient * BigInt.from(10).pow(common - scale)).compareTo(
+        other.coefficient * BigInt.from(10).pow(common - other.scale));
+  }
 
   String get canonical {
     if (coefficient == BigInt.zero) return '0';

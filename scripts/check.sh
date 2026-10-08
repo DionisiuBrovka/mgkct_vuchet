@@ -34,7 +34,7 @@ version_contains flutter 'Flutter 3.44.8' --version
 version_contains data/pocketbase/pocketbase '0.40.1' --version
 
 stage 'PocketBase schema tests'
-python3 -m unittest data/pocketbase/tests/test_report_storage.py
+python3 -m unittest discover -s data/pocketbase/tests
 stage 'Server format and tests'
 (cd server && dart pub get && dart format --output=none --set-exit-if-changed lib bin test && dart analyze && dart test)
 stage 'Server release executable'

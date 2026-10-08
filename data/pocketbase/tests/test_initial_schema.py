@@ -1,5 +1,6 @@
 """Clean PocketBase baseline schema; every database is temporary."""
 import json
+import shutil
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -11,10 +12,10 @@ PB = ROOT / "pocketbase"
 
 
 class InitialSchemaTest(unittest.TestCase):
-    def migrate(self, directory):
+    def migrate(self, directory, migrations=None):
         result = subprocess.run(
             [str(PB), "migrate", "up", f"--dir={directory / 'data'}",
-             f"--migrationsDir={ROOT / 'pb_migrations'}", "--automigrate=false"],
+             f"--migrationsDir={migrations or ROOT / 'pb_migrations'}", "--automigrate=false"],
             input="y\n", text=True, capture_output=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
@@ -41,6 +42,23 @@ class InitialSchemaTest(unittest.TestCase):
         self.assertNotIn("user_profiles", collections)
         self.assertNotIn("display_name", {f["name"] for f in before["users"][0]})
 
+    def test_upgrade_preserves_existing_data(self):
+        with tempfile.TemporaryDirectory(prefix="mgkct-upgrade-") as temp:
+            directory = Path(temp)
+            baseline = directory / "baseline"
+            baseline.mkdir()
+            shutil.copy(ROOT / "pb_migrations" / "1790000000000_initial_schema.js", baseline)
+            self.migrate(directory, baseline)
+            with sqlite3.connect(directory / "data" / "data.db") as db:
+                db.execute("INSERT INTO groups (id, name, normalized_name) VALUES (?, ?, ?)",
+                           ("testgroup000001", "ПР-1", "пр-1"))
+            self.migrate(directory)
+            with sqlite3.connect(directory / "data" / "data.db") as db:
+                self.assertEqual(db.execute("SELECT name FROM groups WHERE id = ?",
+                                            ("testgroup000001",)).fetchone(), ("ПР-1",))
+            fields = {field["name"] for field in self.schema(directory)["assignments"][0]}
+            self.assertTrue({"planned_main_hours", "planned_additional_hours"} <= fields)
+
     def test_fields_indexes_and_direct_access_match_contract(self):
         with tempfile.TemporaryDirectory(prefix="mgkct-schema-") as temp:
             self.migrate(Path(temp)); schema = self.schema(Path(temp))
@@ -50,6 +68,9 @@ class InitialSchemaTest(unittest.TestCase):
         for value in fields["teaching_report_entries"].values():
             if value["name"].endswith("hours"):
                 self.assertEqual(value["type"], "text")
+        for name in ["planned_main_hours", "planned_additional_hours"]:
+            self.assertEqual(fields["assignments"][name]["type"], "text")
+            self.assertFalse(fields["assignments"][name]["required"])
         expected_indexes = {"subjects": "uq_subject_normalized_name", "groups": "uq_group_normalized_name", "assignments": "uq_assignment", "teaching_reports": "uq_report_period", "teaching_report_entries": "uq_report_assignment", "app_sessions": "uq_session_token_hash"}
         for collection, index in expected_indexes.items():
             self.assertTrue(any(index in value for value in schema[collection][1]))

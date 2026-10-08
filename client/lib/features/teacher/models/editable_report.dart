@@ -49,7 +49,6 @@ class EditableReport {
   String? validation(String assignmentId, String field) {
     final decimal = parsed(assignmentId, field);
     if (decimal == null) return 'Введите число';
-    if (decimal.exceeds999) return 'Не больше 999';
     return null;
   }
 
@@ -58,6 +57,17 @@ class EditableReport {
       (total, field) =>
           total +
           (parsed(entry.assignment.id, field) ?? DecimalInput.tryParse('0')!));
+
+  DecimalInput categoryFor(EntryDto entry, {required bool additional}) =>
+      hourKeys
+          .where(
+              (field) => (field == 'additionalAssessmentHours') == additional)
+          .fold(
+              DecimalInput.tryParse('0')!,
+              (total, field) =>
+                  total +
+                  (parsed(entry.assignment.id, field) ??
+                      DecimalInput.tryParse('0')!));
 
   DecimalInput get assignmentTotal => report.entries.fold(
       DecimalInput.tryParse('0')!, (total, entry) => total + totalFor(entry));
@@ -81,8 +91,7 @@ class EditableReport {
       final hours = DecimalInput.tryParse(substitution.hours);
       if (substitution.date.isEmpty ||
           substitution.description.trim().isEmpty ||
-          hours == null ||
-          hours.exceeds999) {
+          hours == null) {
         return null;
       }
     }

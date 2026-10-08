@@ -28,12 +28,52 @@ class DecimalValue {
 
 class AssignmentDto {
   const AssignmentDto(
-      {required this.id, required this.subject, required this.group});
+      {required this.id,
+      required this.subject,
+      required this.group,
+      this.progress});
   final String id, subject, group;
+  final AssignmentProgress? progress;
   factory AssignmentDto.fromJson(Map<String, dynamic> v) => AssignmentDto(
       id: _string(v, 'id'),
       subject: _string(v, 'subject'),
-      group: _string(v, 'group'));
+      group: _string(v, 'group'),
+      progress: v['progress'] == null
+          ? null
+          : AssignmentProgress.fromJson(_map(v, 'progress')));
+}
+
+class PlanCategory {
+  const PlanCategory(
+      {required this.planned,
+      required this.confirmed,
+      required this.submitted,
+      required this.otherReported,
+      required this.remaining,
+      required this.excess});
+  final DecimalValue? planned, remaining, excess;
+  final DecimalValue confirmed, submitted, otherReported;
+  factory PlanCategory.fromJson(Map<String, dynamic> value) => PlanCategory(
+      planned: value['planned'] == null
+          ? null
+          : DecimalValue.parse(value['planned']),
+      confirmed: DecimalValue.parse(value['confirmed']),
+      submitted: DecimalValue.parse(value['submitted']),
+      otherReported: DecimalValue.parse(value['otherReported']),
+      remaining: value['remaining'] == null
+          ? null
+          : DecimalValue.parse(value['remaining']),
+      excess:
+          value['excess'] == null ? null : DecimalValue.parse(value['excess']));
+}
+
+class AssignmentProgress {
+  const AssignmentProgress({required this.main, required this.additional});
+  final PlanCategory main, additional;
+  factory AssignmentProgress.fromJson(Map<String, dynamic> value) =>
+      AssignmentProgress(
+          main: PlanCategory.fromJson(_map(value, 'main')),
+          additional: PlanCategory.fromJson(_map(value, 'additional')));
 }
 
 class EntryDto {

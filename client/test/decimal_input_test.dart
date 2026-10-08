@@ -5,7 +5,6 @@ void main() {
   test('keeps long decimals exact and accepts comma input', () {
     final long = DecimalInput.tryParse('1000,125000000000000000001')!;
     expect(long.canonical, '1000.125000000000000000001');
-    expect(long.exceeds999, isTrue);
   });
 
   test('adds decimal tenths without binary floating point rounding', () {

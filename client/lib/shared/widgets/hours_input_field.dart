@@ -48,7 +48,6 @@ class _HoursInputFieldState extends State<HoursInputField> {
   String? _validation(String? value) {
     final decimal = DecimalInput.tryParse(value ?? '');
     if (decimal == null) return 'Введите число';
-    if (decimal.exceeds999) return 'Не больше 999';
     return null;
   }
 

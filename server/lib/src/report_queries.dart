@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:pocketbase/pocketbase.dart';
+
 import 'auth_service.dart';
 import 'api_error.dart';
 import 'decimal.dart';
@@ -68,6 +71,108 @@ class ReportQueries {
     };
   }
 
+  Future<List<RecordModel>> _annualHeaders(
+    String teacher,
+    int start,
+  ) => store.list(
+    'teaching_reports',
+    filter:
+        'teacher = {:teacher} && ((year = {:start} && month >= 9) || (year = {:end} && month <= 7))',
+    params: {'teacher': teacher, 'start': start, 'end': start + 1},
+  );
+
+  String _versions(List<RecordModel> rows) {
+    final versions = [
+      for (final row in rows)
+        '${row.id}:${row.data['revision']}:${row.data['status']}',
+    ]..sort();
+    return jsonEncode(versions);
+  }
+
+  Future<Map<String, dynamic>> _progress(
+    String teacher,
+    int start,
+    String? currentId,
+    List<RecordModel> headers,
+  ) async {
+    final assignments = await store.list(
+      'assignments',
+      filter: 'teacher = {:teacher} && academic_year = {:year}',
+      params: {'teacher': teacher, 'year': start},
+    );
+    final zero = Decimal.parse('0');
+    final result = <String, dynamic>{};
+    for (final assignment in assignments) {
+      Map<String, dynamic> category(String field) {
+        final raw = assignment.data[field];
+        return {
+          'planned': raw == null || raw == ''
+              ? null
+              : Decimal.parse(raw).toString(),
+          'confirmed': zero,
+          'submitted': zero,
+          'otherReported': zero,
+        };
+      }
+
+      result[assignment.id] = {
+        'main': category('planned_main_hours'),
+        'additional': category('planned_additional_hours'),
+      };
+    }
+    for (final header in headers) {
+      final status = header.data['status'];
+      if (status != 'confirmed' && status != 'submitted') continue;
+      final rows = await store.list(
+        'teaching_report_entries',
+        filter: 'report = {:id}',
+        params: {'id': header.id},
+      );
+      for (final row in rows) {
+        final progress = result[row.data['assignment']];
+        if (progress == null) continue;
+        final additional = Decimal.parse(
+          row.data['additional_assessment_hours'],
+        );
+        final main = sum(
+          hourFields.values
+              .where((key) => key != 'additional_assessment_hours')
+              .map((key) => Decimal.parse(row.data[key])),
+        );
+        for (final item in {'main': main, 'additional': additional}.entries) {
+          final category = progress[item.key] as Map<String, dynamic>;
+          category[status] = (category[status] as Decimal) + item.value;
+          // The editor adds its current form once, even for an already submitted report.
+          if (header.id != currentId)
+            category['otherReported'] =
+                (category['otherReported'] as Decimal) + item.value;
+        }
+      }
+    }
+    for (final progress in result.values) {
+      for (final category in (progress as Map).values) {
+        final planned = category['planned'] == null
+            ? null
+            : Decimal.parse(category['planned']);
+        final difference = planned == null
+            ? null
+            : planned - (category['confirmed'] as Decimal);
+        category['remaining'] = difference == null
+            ? null
+            : (difference.coefficient.isNegative ? zero : difference)
+                  .toString();
+        category['excess'] = difference == null
+            ? null
+            : (difference.coefficient.isNegative ? zero - difference : zero)
+                  .toString();
+        for (final key in ['confirmed', 'submitted', 'otherReported']) {
+          category[key] = category[key].toString();
+        }
+      }
+    }
+    return result;
+  }
+
   Future<Map<String, dynamic>> report(
     Actor actor,
     String teacher,
@@ -91,6 +196,16 @@ class ReportQueries {
           header != null &&
           header.data['status'] == 'draft')
         throw const ApiError(403, 'Доступ запрещён', code: 'forbidden');
+      final annualHeaders = await _annualHeaders(
+        teacher,
+        academicYear(year, month),
+      );
+      final progress = await _progress(
+        teacher,
+        academicYear(year, month),
+        header?.id,
+        annualHeaders,
+      );
       final entries = <Map<String, dynamic>>[];
       final substitutions = <Map<String, dynamic>>[];
       if (header != null) {
@@ -119,6 +234,7 @@ class ReportQueries {
               'id': assignment.id,
               'subject': subject.data['name'],
               'group': group.data['name'],
+              'progress': progress[assignment.id],
             },
           };
           final values = <Decimal>[];
@@ -162,6 +278,7 @@ class ReportQueries {
               'id': row.id,
               'subject': subject.data['name'],
               'group': group.data['name'],
+              'progress': progress[row.id],
             },
             for (final key in hourFields.keys) key: '0',
             'totalHours': '0',
@@ -192,6 +309,9 @@ class ReportQueries {
         final current = await store.get('teaching_reports', header.id);
         if (current.data['revision'] != header.data['revision']) continue;
       }
+      if (_versions(annualHeaders) !=
+          _versions(await _annualHeaders(teacher, academicYear(year, month))))
+        continue;
       return {
         'id': header?.id,
         'teacher': {'id': teacher},

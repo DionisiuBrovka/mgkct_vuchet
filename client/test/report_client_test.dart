@@ -69,7 +69,7 @@ void main() {
     final state = cubit.state as TeachingReportLoaded;
     expect(state.editor.value('assignment-id', 'lectureHours'),
         '1000,125000000000000000001');
-    expect(state.error, 'Проверьте значения часов');
+    expect(state.error, 'Конфликт');
   });
 
   test('submit issues one aggregate request with exact decimal strings',

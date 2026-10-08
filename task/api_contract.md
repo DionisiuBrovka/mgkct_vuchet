@@ -132,3 +132,20 @@ positive substitution is valid on submit; all-zero entries/substitutions yield
 Task 07 converts its scenarios to tests; 11–13 implement routes; 14 consumes
 the same models. No response exposes PB field/collection names or legacy
 `profileId`.
+
+## Годовой прогресс назначения (2026-10-08)
+
+Ответ чтения отчёта и команд содержит `entries[].assignment.progress`:
+объекты `main` и `additional`, каждый с полями:
+
+- `planned`: decimal string или null, если план не задан;
+- `confirmed`, `submitted`: decimal strings за весь учебный год;
+- `remaining`: max(planned − confirmed, 0), decimal string или null;
+- `excess`: max(confirmed − planned, 0), decimal string или null;
+- `otherReported`: сумма confirmed + submitted без текущего отчёта;
+  клиент добавляет текущую форму ровно один раз для предупреждения.
+
+Draft других месяцев и substitutions исключены. При изменении ревизий
+годовых отчётов во время чтения сервер повторяет чтение; после трёх попыток
+возвращает 409. Поля вычисляются Shelf; клиент не передаёт их при записи.
+Доступ к прогрессу наследует проверку роли, владельца и периода отчёта.
