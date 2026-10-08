@@ -111,7 +111,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                             return const ScreenHint(
                                 title: 'Выберите месяц',
                                 message:
-                                    'Откройте черновик, заполните часы и отправьте отчёт завучу. «На проверке» — ожидайте решения; «Подтверждена» — отчёт принят и доступен только для просмотра. Потяните список вниз, чтобы обновить статусы.');
+                                    'Откройте черновик, заполните часы и отправьте отчёт завучу. «На проверке» — ожидайте решения; «Подтверждён» — отчёт принят и доступен только для просмотра. Потяните список вниз, чтобы обновить статусы.');
                           }
                           final period = periods[i - 1];
                           const names = {
@@ -138,7 +138,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                             onTap: () async {
                               await context.push(
                                   '/teacher/fill/${period['month']}/$year');
-                              _periodsCubit.load();
+                              if (mounted) _periodsCubit.load();
                             },
                           );
                         },

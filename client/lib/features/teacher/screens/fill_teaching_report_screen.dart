@@ -9,6 +9,10 @@ import '../../auth/cubit/auth_state.dart';
 import '../cubit/teaching_report_cubit.dart';
 import '../cubit/teaching_report_state.dart';
 import '../models/editable_report.dart';
+import 'substitution_dialog.dart';
+import '../../../shared/widgets/status_badge.dart';
+import '../../../shared/widgets/assignment_heading.dart';
+import '../../../shared/widgets/screen_hint.dart';
 
 class FillTeachingReportScreen extends StatefulWidget {
   const FillTeachingReportScreen(
@@ -21,6 +25,7 @@ class FillTeachingReportScreen extends StatefulWidget {
 
 class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
   final _form = GlobalKey<FormState>();
+  int _section = 0;
   late final String _teacher;
   @override
   void initState() {
@@ -35,151 +40,242 @@ class _FillTeachingReportScreenState extends State<FillTeachingReportScreen> {
   Widget build(BuildContext context) => Scaffold(
         appBar:
             AppBar(title: Text('${_monthName(widget.month)} ${widget.year}')),
-        body: BlocBuilder<TeachingReportCubit, TeachingReportState>(
-            builder: (context, state) {
-          if (state is TeachingReportInitial ||
-              state is TeachingReportLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state is TeachingReportError) {
-            return Center(
-                child: TextButton(
-                    onPressed: () => context
-                        .read<TeachingReportCubit>()
-                        .loadMonth(_teacher, widget.year, widget.month),
-                    child: Text('Повторить: ${state.message}')));
-          }
-          final loaded = state as TeachingReportLoaded;
-          final report = loaded.editor.report;
-          final locked = report.status != ReportStatus.draft;
-          return Form(
-              key: _form,
-              child: Stack(children: [
-                ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                    children: [
-                      Text(locked
-                          ? 'Отчёт доступен только для просмотра.'
-                          : 'Пустое поле означает 0. Допустимы точные дроби через запятую или точку.'),
-                      if (loaded.error != null)
-                        Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Row(children: [
+        body: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1120),
+                child: BlocConsumer<TeachingReportCubit, TeachingReportState>(
+                    listenWhen: (previous, current) =>
+                        previous is TeachingReportLoaded &&
+                        previous.isSaving &&
+                        current is TeachingReportLoaded &&
+                        !current.isSaving &&
+                        current.error == null,
+                    listener: (context, state) {
+                      final report =
+                          (state as TeachingReportLoaded).editor.report;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(report.status == ReportStatus.draft
+                              ? 'Черновик сохранён'
+                              : 'Отчёт отправлен на проверку')));
+                    },
+                    builder: (context, state) {
+                      if (state is TeachingReportInitial ||
+                          state is TeachingReportLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (state is TeachingReportError) {
+                        return Center(
+                            child: TextButton(
+                                onPressed: () => context
+                                    .read<TeachingReportCubit>()
+                                    .loadMonth(
+                                        _teacher, widget.year, widget.month),
+                                child: Text('Повторить: ${state.message}')));
+                      }
+                      final loaded = state as TeachingReportLoaded;
+                      final report = loaded.editor.report;
+                      final locked = report.status != ReportStatus.draft;
+                      return Form(
+                          key: _form,
+                          child: Stack(children: [
+                            Column(children: [
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                                child: DefaultTabController(
+                                  length: 2,
+                                  child: TabBar(
+                                    onTap: (index) {
+                                      FocusScope.of(context).unfocus();
+                                      setState(() => _section = index);
+                                    },
+                                    tabs: [
+                                      Tab(
+                                          text:
+                                              'Назначения (${report.entries.length})'),
+                                      Tab(
+                                          text:
+                                              'Замены (${loaded.editor.substitutions.length})'),
+                                    ],
+                                  ),
+                                ),
+                              ),
                               Expanded(
-                                  child: Text(loaded.error!,
-                                      style: TextStyle(
+                                  child:
+                                      IndexedStack(index: _section, children: [
+                                ListView(
+                                    key: const PageStorageKey('assignments'),
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20, 12, 20, 180),
+                                    children: [
+                                      Wrap(
+                                          spacing: 12,
+                                          runSpacing: 8,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: [
+                                            StatusBadge(report.status),
+                                            Text(
+                                                'Назначений: ${report.entries.length} · Замен: ${loaded.editor.substitutions.length}'),
+                                          ]),
+                                      const SizedBox(height: 16),
+                                      ScreenHint(
+                                          title: locked
+                                              ? 'Отчёт отправлен'
+                                              : 'Заполните часы за месяц',
+                                          message: locked
+                                              ? 'Изменения недоступны. Годовой план и итоги можно просматривать.'
+                                              : 'Пустое поле — 0. Дробные часы вводите через запятую или точку. Основные часы и допконтроль сравниваются с планом отдельно; превышение не мешает отправке.'),
+                                      if (loaded.error != null)
+                                        Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8),
+                                            child: Row(children: [
+                                              Expanded(
+                                                  child: Text(loaded.error!,
+                                                      style: TextStyle(
+                                                          color:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .error))),
+                                              TextButton(
+                                                  onPressed: () => context
+                                                      .read<
+                                                          TeachingReportCubit>()
+                                                      .loadMonth(
+                                                          _teacher,
+                                                          widget.year,
+                                                          widget.month),
+                                                  child: const Text(
+                                                      'Открыть актуальный')),
+                                            ])),
+                                      if (report.entries.isEmpty)
+                                        const Padding(
+                                            padding: EdgeInsets.only(top: 16),
+                                            child: Text(
+                                                'Назначений нет. Обратитесь к администратору; замены можно будет добавить отдельно.')),
+                                      for (final entry in report.entries)
+                                        _EntryCard(
+                                            editor: loaded.editor,
+                                            entry: entry,
+                                            locked: locked || loaded.isSaving),
+                                    ]),
+                                ListView(
+                                  key: const PageStorageKey('substitutions'),
+                                  padding: const EdgeInsets.fromLTRB(
+                                      20, 12, 20, 180),
+                                  children: [
+                                    ScreenHint(
+                                      title:
+                                          'Замены за ${_monthName(widget.month).toLowerCase()}',
+                                      message: locked
+                                          ? 'Отчёт отправлен. Замены доступны только для просмотра.'
+                                          : 'Укажите дату, кого и в какой группе заменяли, и количество часов. Замены сохраняются и отправляются вместе с назначениями.',
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _SubstitutionsSection(
+                                        items: loaded.editor.substitutions,
+                                        locked: locked || loaded.isSaving,
+                                        onEdit: (item) =>
+                                            _editSubstitution(item),
+                                        onDelete: (item) => context
+                                            .read<TeachingReportCubit>()
+                                            .deleteSubstitution(item)),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                        'Итого по заменам: ${loaded.editor.substitutionTotal.canonical} ч'),
+                                  ],
+                                ),
+                              ])),
+                            ]),
+                            if (!locked)
+                              Positioned(
+                                  left: 16,
+                                  right: 16,
+                                  bottom: 16,
+                                  child: SafeArea(
+                                      child: Material(
+                                          elevation: 4,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
                                           color: Theme.of(context)
                                               .colorScheme
-                                              .error))),
-                              TextButton(
-                                  onPressed: () => context
-                                      .read<TeachingReportCubit>()
-                                      .loadMonth(
-                                          _teacher, widget.year, widget.month),
-                                  child: const Text('Открыть актуальный')),
-                            ])),
-                      if (report.entries.isEmpty)
-                        const Padding(
-                            padding: EdgeInsets.only(top: 16),
-                            child: Text(
-                                'Назначений нет. Обратитесь к администратору; замены можно будет добавить отдельно.')),
-                      for (final entry in report.entries)
-                        _EntryCard(
-                            editor: loaded.editor,
-                            entry: entry,
-                            locked: locked),
-                      const SizedBox(height: 12),
-                      _SubstitutionsSection(
-                          items: loaded.editor.substitutions,
-                          locked: locked,
-                          onEdit: (item) => _editSubstitution(item),
-                          onDelete: (item) => context
-                              .read<TeachingReportCubit>()
-                              .deleteSubstitution(item)),
-                      Text(
-                          'Итого по назначениям: ${loaded.editor.assignmentTotal.canonical} ч; общий итог: ${loaded.editor.grandTotal.canonical} ч'),
-                    ]),
-                if (!locked)
-                  Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 16,
-                      child: Row(children: [
-                        Expanded(
-                            child: FilledButton.tonal(
-                                onPressed: loaded.isSaving
-                                    ? null
-                                    : () {
-                                        if (_form.currentState!.validate()) {
-                                          context
-                                              .read<TeachingReportCubit>()
-                                              .saveDraft();
-                                        }
-                                      },
-                                child: const Text('Сохранить черновик'))),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            child: FilledButton(
-                                onPressed: loaded.isSaving
-                                    ? null
-                                    : () {
-                                        if (_form.currentState!.validate()) {
-                                          context
-                                              .read<TeachingReportCubit>()
-                                              .submit();
-                                        }
-                                      },
-                                child: const Text('Отправить'))),
-                      ])),
-              ]));
-        }),
+                                              .surface,
+                                          child: Padding(
+                                              padding: const EdgeInsets.all(20),
+                                              child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    if (loaded.error != null &&
+                                                        _section == 1)
+                                                      Text(loaded.error!,
+                                                          style: TextStyle(
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .error)),
+                                                    Text(
+                                                        'Назначения: ${loaded.editor.assignmentTotal.canonical} ч · Замены: ${loaded.editor.substitutionTotal.canonical} ч · Всего: ${loaded.editor.grandTotal.canonical} ч',
+                                                        textAlign:
+                                                            TextAlign.center),
+                                                    const SizedBox(height: 12),
+                                                    Row(children: [
+                                                      Expanded(
+                                                          child: FilledButton
+                                                              .tonal(
+                                                                  onPressed: loaded
+                                                                          .isSaving
+                                                                      ? null
+                                                                      : () {
+                                                                          if (_validate()) {
+                                                                            context.read<TeachingReportCubit>().saveDraft();
+                                                                          }
+                                                                        },
+                                                                  child: Text(
+                                                                      loaded.isSaving
+                                                                          ? 'Сохраняем…'
+                                                                          : 'Сохранить черновик',
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .center))),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                          child: FilledButton(
+                                                              onPressed: loaded
+                                                                      .isSaving
+                                                                  ? null
+                                                                  : () {
+                                                                      if (_validate()) {
+                                                                        context
+                                                                            .read<TeachingReportCubit>()
+                                                                            .submit();
+                                                                      }
+                                                                    },
+                                                              child: const Text(
+                                                                  'Отправить'))),
+                                                    ]),
+                                                  ]))))),
+                          ]));
+                    }))),
       );
 
+  bool _validate() {
+    final valid = _form.currentState!.validate();
+    if (!valid) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Проверьте поля часов на вкладке «Назначения».'),
+      ));
+    }
+    return valid;
+  }
+
   Future<void> _editSubstitution(EditableSubstitution? original) async {
-    final item = original?.copy() ??
-        EditableSubstitution(date: '', description: '', hours: '');
-    final date = TextEditingController(text: item.date);
-    final description = TextEditingController(text: item.description);
-    final hours = TextEditingController(text: item.hours);
     final result = await showDialog<EditableSubstitution>(
         context: context,
-        builder: (context) => AlertDialog(
-              title: Text(
-                  original == null ? 'Добавить замену' : 'Изменить замену'),
-              content: Column(mainAxisSize: MainAxisSize.min, children: [
-                TextField(
-                    controller: date,
-                    decoration:
-                        const InputDecoration(labelText: 'Дата (ГГГГ-ММ-ДД)')),
-                TextField(
-                    controller: description,
-                    decoration: const InputDecoration(
-                        labelText: 'Кого и в какой группе заменяли')),
-                TextField(
-                    controller: hours,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Часы')),
-              ]),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Отмена')),
-                FilledButton(
-                    onPressed: () => Navigator.pop(
-                        context,
-                        EditableSubstitution(
-                            id: item.id,
-                            key: item.key,
-                            date: date.text.trim(),
-                            description: description.text.trim(),
-                            hours: hours.text.trim())),
-                    child: const Text('Сохранить')),
-              ],
-            ));
-    date.dispose();
-    description.dispose();
-    hours.dispose();
+        builder: (_) => SubstitutionDialog(
+            year: widget.year, month: widget.month, original: original));
     if (result != null && mounted) {
       context.read<TeachingReportCubit>().saveSubstitution(result);
     }
@@ -195,22 +291,39 @@ class _EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
       child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(20),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${entry.assignment.subject} · гр. ${entry.assignment.group}'),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final field in hourKeys)
-                SizedBox(
-                    width: 95,
-                    child: HoursInputField(
-                        label: _label(field),
-                        value: editor.value(entry.assignment.id, field),
-                        enabled: !locked,
-                        onChanged: (value) => context
-                            .read<TeachingReportCubit>()
-                            .updateValue(entry.assignment.id, field, value)))
-            ]),
+            AssignmentHeading(
+                subject: entry.assignment.subject,
+                group: entry.assignment.group),
+            const SizedBox(height: 20),
+            LayoutBuilder(builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 960
+                  ? 6
+                  : constraints.maxWidth >= 600
+                      ? 3
+                      : 2;
+              final width =
+                  (constraints.maxWidth - 16 * (columns - 1)) / columns;
+              return Wrap(spacing: 16, runSpacing: 20, children: [
+                for (final field in [
+                  ...hourKeys
+                      .where((key) => key != 'additionalAssessmentHours'),
+                  'additionalAssessmentHours',
+                ])
+                  SizedBox(
+                      width: width,
+                      child: HoursInputField(
+                          label: _label(field),
+                          value: editor.value(entry.assignment.id, field),
+                          enabled: !locked,
+                          onChanged: (value) => context
+                              .read<TeachingReportCubit>()
+                              .updateValue(entry.assignment.id, field, value)))
+              ]);
+            }),
+            const SizedBox(height: 16),
             Text('Итого за месяц: ${editor.totalFor(entry).canonical} ч'),
             if (entry.assignment.progress != null)
               AssignmentProgressView(
@@ -241,12 +354,12 @@ String _monthName(int month) =>
     }[month] ??
     '$month';
 String _label(String key) => const {
-      'lectureHours': 'Лек',
-      'practicalHours': 'ЛР/ПР',
-      'courseProjectHours': 'КП',
-      'consultationHours': 'Конс',
-      'additionalAssessmentHours': 'Доп.к',
-      'examHours': 'Экз'
+      'lectureHours': 'Лекции',
+      'practicalHours': 'Лаб. и практические',
+      'courseProjectHours': 'Курсовые проекты',
+      'consultationHours': 'Консультации',
+      'additionalAssessmentHours': 'Допконтроль',
+      'examHours': 'Экзамены'
     }[key]!;
 
 class _SubstitutionsSection extends StatelessWidget {
@@ -262,15 +375,18 @@ class _SubstitutionsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Text('Замены'),
-          const Spacer(),
-          if (!locked)
-            TextButton.icon(
-                onPressed: () => onEdit(null),
-                icon: const Icon(Icons.add),
-                label: const Text('Добавить'))
-        ]),
+        Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('Замены', style: Theme.of(context).textTheme.titleLarge),
+              if (!locked)
+                TextButton.icon(
+                    onPressed: () => onEdit(null),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Добавить замену'))
+            ]),
         for (final item in items)
           ListTile(
               title: Text(item.description),
@@ -280,11 +396,19 @@ class _SubstitutionsSection extends StatelessWidget {
                   : Row(mainAxisSize: MainAxisSize.min, children: [
                       IconButton(
                           onPressed: () => onEdit(item),
+                          tooltip: 'Изменить замену',
                           icon: const Icon(Icons.edit)),
                       IconButton(
                           onPressed: () => onDelete(item),
+                          tooltip: 'Удалить замену',
                           icon: const Icon(Icons.delete_outline))
                     ])),
-        if (items.isEmpty) const Text('Замены не указаны.'),
+        if (items.isEmpty)
+          const Card(
+              child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+                'Пока нет замен. Если в этом месяце вы заменяли другого преподавателя, добавьте запись.'),
+          )),
       ]);
 }

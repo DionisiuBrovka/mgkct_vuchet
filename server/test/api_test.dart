@@ -706,4 +706,89 @@ void main() {
       expect(forbidden.statusCode, 403);
     },
   );
+  test(
+    'statistics are admin only, filtered by identity and exported as xlsx',
+    () async {
+      Future<String> login(String id) async => session(
+        await request(
+          'POST',
+          '/api/auth/login',
+          body: {'userId': id, 'password': password},
+        ),
+      );
+      final teacher = await login(queryTeacherId);
+      final admin = await login(adminId);
+      for (final path in [
+        '/api/admin/statistics',
+        '/api/admin/statistics/options',
+        '/api/admin/statistics.xlsx',
+      ]) {
+        expect((await request('GET', path)).statusCode, 401);
+        expect((await request('GET', path, cookie: teacher)).statusCode, 403);
+      }
+      final optionsResponse = await request(
+        'GET',
+        '/api/admin/statistics/options',
+        cookie: admin,
+      );
+      expect(optionsResponse.statusCode, 200);
+      final options = jsonDecode(optionsResponse.body) as Map;
+      expect(options['years'], containsAll([2025, 2026]));
+      final planTeacher = (options['teachers'] as List).singleWhere(
+        (row) => row['name'] == 'Годовой план',
+      )['id'];
+      final source = await data.collection('assignments').getOne(assignmentId);
+      final filter =
+          'academicYear=2026&teacher=$planTeacher&subject=${source.data['subject']}&group=${source.data['group']}';
+      final response = await request(
+        'GET',
+        '/api/admin/statistics?$filter',
+        cookie: admin,
+      );
+      expect(response.statusCode, 200, reason: response.body);
+      final statistics = jsonDecode(response.body) as Map;
+      expect(statistics['rows'], hasLength(1));
+      expect(statistics['totals']['main']['confirmed'], '0.3');
+      expect(statistics['totals']['main']['planned'], '0.25');
+      expect(statistics['totals']['main']['excess'], '0.05');
+      expect(statistics['totals']['additional']['confirmed'], '0.12');
+      final allYears = await request(
+        'GET',
+        '/api/admin/statistics?teacher=$planTeacher',
+        cookie: admin,
+      );
+      expect(jsonDecode(allYears.body)['rows'], hasLength(2));
+      expect(jsonDecode(allYears.body)['totals']['main']['missingPlans'], 1);
+      for (final filter in [
+        'academicYear=abc',
+        'academicYear=1999',
+        'teacher=invalid',
+        'unknown=x',
+      ]) {
+        expect(
+          (await request(
+            'GET',
+            '/api/admin/statistics?$filter',
+            cookie: admin,
+          )).statusCode,
+          422,
+        );
+      }
+      final empty = await request(
+        'GET',
+        '/api/admin/statistics?academicYear=2040',
+        cookie: admin,
+      );
+      expect(jsonDecode(empty.body)['rows'], isEmpty);
+      final excel = await request(
+        'GET',
+        '/api/admin/statistics.xlsx?$filter',
+        cookie: admin,
+      );
+      expect(excel.statusCode, 200);
+      expect(excel.headers['content-type'], contains('spreadsheetml.sheet'));
+      expect(excel.headers['content-disposition'], contains('attachment'));
+      expect(excel.bodyBytes.take(2), [80, 75]);
+    },
+  );
 }

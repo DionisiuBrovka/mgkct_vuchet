@@ -12,7 +12,7 @@ class StatusBadge extends StatelessWidget {
     final (label, color) = switch (status) {
       ReportStatus.draft => ('Черновик', Colors.grey),
       ReportStatus.submitted => ('На проверке', Colors.orange),
-      ReportStatus.confirmed => ('Подтверждена', Colors.green),
+      ReportStatus.confirmed => ('Подтверждён', Colors.green),
     };
     final description = switch (status) {
       ReportStatus.draft =>

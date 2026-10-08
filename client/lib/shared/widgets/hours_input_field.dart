@@ -34,7 +34,12 @@ class _HoursInputFieldState extends State<HoursInputField> {
   void didUpdateWidget(HoursInputField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_focus.hasFocus && _controller.text != widget.value) {
-      _controller.text = widget.value;
+      // Controller notifications must not invalidate the parent Form during build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_focus.hasFocus && _controller.text != widget.value) {
+          _controller.text = widget.value;
+        }
+      });
     }
   }
 
@@ -47,7 +52,11 @@ class _HoursInputFieldState extends State<HoursInputField> {
 
   String? _validation(String? value) {
     final decimal = DecimalInput.tryParse(value ?? '');
-    if (decimal == null) return 'Введите число';
+    if (decimal == null) {
+      return (value ?? '').endsWith(',') || (value ?? '').endsWith('.')
+          ? 'Допишите дробную часть'
+          : 'Введите число от 0, например 1,5';
+    }
     return null;
   }
 
@@ -57,14 +66,18 @@ class _HoursInputFieldState extends State<HoursInputField> {
         focusNode: _focus,
         enabled: widget.enabled,
         validator: _validation,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        textInputAction: TextInputAction.next,
         decoration: InputDecoration(
           label: Tooltip(
             message: hourDescriptions[widget.label] ?? widget.label,
             child: Text(widget.label),
           ),
           hintText: '0',
+          suffixText: 'ч',
+          errorMaxLines: 2,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
           isDense: true,
         ),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),

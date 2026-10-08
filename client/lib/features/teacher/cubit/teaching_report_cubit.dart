@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/report_repository.dart';
+import '../../../core/domain.dart';
 import '../models/editable_report.dart';
 import 'teaching_report_state.dart';
 
@@ -24,14 +25,22 @@ class TeachingReportCubit extends Cubit<TeachingReportState> {
 
   void updateValue(String assignmentId, String field, String value) {
     final loaded = state;
-    if (loaded is! TeachingReportLoaded || loaded.isSaving) return;
+    if (loaded is! TeachingReportLoaded ||
+        loaded.isSaving ||
+        loaded.editor.report.status != ReportStatus.draft) {
+      return;
+    }
     final editor = loaded.editor.copy()..setValue(assignmentId, field, value);
     emit(loaded.copyWith(editor: editor, error: null));
   }
 
   void saveSubstitution(EditableSubstitution substitution) {
     final loaded = state;
-    if (loaded is! TeachingReportLoaded || loaded.isSaving) return;
+    if (loaded is! TeachingReportLoaded ||
+        loaded.isSaving ||
+        loaded.editor.report.status != ReportStatus.draft) {
+      return;
+    }
     final editor = loaded.editor.copy();
     final index =
         editor.substitutions.indexWhere((item) => item.key == substitution.key);
@@ -45,7 +54,11 @@ class TeachingReportCubit extends Cubit<TeachingReportState> {
 
   void deleteSubstitution(EditableSubstitution substitution) {
     final loaded = state;
-    if (loaded is! TeachingReportLoaded || loaded.isSaving) return;
+    if (loaded is! TeachingReportLoaded ||
+        loaded.isSaving ||
+        loaded.editor.report.status != ReportStatus.draft) {
+      return;
+    }
     final editor = loaded.editor.copy();
     editor.substitutions.removeWhere((item) => item.key == substitution.key);
     emit(loaded.copyWith(editor: editor, error: null));
@@ -55,7 +68,11 @@ class TeachingReportCubit extends Cubit<TeachingReportState> {
   Future<void> submit() => _save('submit');
   Future<void> _save(String action) async {
     final loaded = state;
-    if (loaded is! TeachingReportLoaded || loaded.isSaving) return;
+    if (loaded is! TeachingReportLoaded ||
+        loaded.isSaving ||
+        loaded.editor.report.status != ReportStatus.draft) {
+      return;
+    }
     emit(loaded.copyWith(isSaving: true));
     try {
       final input = loaded.editor.input();

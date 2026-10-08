@@ -149,3 +149,23 @@ Draft других месяцев и substitutions исключены. При и
 годовых отчётов во время чтения сервер повторяет чтение; после трёх попыток
 возвращает 409. Поля вычисляются Shelf; клиент не передаёт их при записи.
 Доступ к прогрессу наследует проверку роли, владельца и периода отчёта.
+
+## Статистика и Excel (2026-10-08)
+
+Только `admin`, обязательная актуальная серверная сессия:
+
+- `GET /api/admin/statistics/options`: `years` (годы начала), `teachers`,
+  `subjects`, `groups` (объекты id/name только для назначений).
+- `GET /api/admin/statistics`: `rows`, `totals`, `filters`, `filterLabels`,
+  `generatedAt` UTC. Строка: id назначения, academicYear, teacher/subject/group
+  (названия), progress.main/additional по контракту годового прогресса.
+- `GET /api/admin/statistics.xlsx`: тот же серверный расчёт в формате XLSX,
+  Content-Disposition attachment, Cache-Control no-store.
+
+Оба маршрута выборки принимают необязательные `academicYear` (2000–2100),
+`teacher`, `subject`, `group` (ID из options); отсутствие фильтра — все значения.
+Некорректные или неизвестные параметры дают 422. Teacher получает 403,
+анонимный запрос — 401. Данные PB и service credentials клиенту не выдаются.
+В totals каждая категория содержит суммы planned/confirmed/submitted/remaining/
+excess и missingPlans. Незаданные планы не участвуют в сумме плана и остатков.
+Суммы точные; итоги не взаимозачитывают превышения разных назначений.

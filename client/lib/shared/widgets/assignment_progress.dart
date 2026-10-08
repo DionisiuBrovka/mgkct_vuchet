@@ -22,10 +22,25 @@ class AssignmentProgressView extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('План на $academicYear–${academicYear + 1} учебный год',
             style: Theme.of(context).textTheme.titleSmall),
-        _category(context, 'Основные часы', progress.main, currentMain),
-        const SizedBox(height: 8),
-        _category(
-            context, 'Допконтроль', progress.additional, currentAdditional),
+        const SizedBox(height: 12),
+        LayoutBuilder(builder: (context, constraints) {
+          final width = constraints.maxWidth >= 600
+              ? (constraints.maxWidth - 12) / 2
+              : constraints.maxWidth;
+          return Wrap(spacing: 12, runSpacing: 12, children: [
+            for (final item in [
+              ('Основные часы', progress.main, currentMain),
+              ('Допконтроль', progress.additional, currentAdditional)
+            ])
+              Container(
+                  width: width,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12)),
+                  child: _category(context, item.$1, item.$2, item.$3)),
+          ]);
+        }),
       ]));
 
   Widget _category(BuildContext context, String title, PlanCategory category,
@@ -41,7 +56,9 @@ class AssignmentProgressView extends StatelessWidget {
                 .compareTo(DecimalInput.tryParse(planned.value)!) >
             0;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('$title: ${planned == null ? 'план не задан' : 'план $planned ч'}'),
+      Text('$title: ${planned == null ? 'план не задан' : 'план $planned ч'}',
+          style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: 8),
       Text('Вычитано и подтверждено: ${category.confirmed} ч'),
       Text('На проверке: ${category.submitted} ч'),
       if (category.remaining != null)

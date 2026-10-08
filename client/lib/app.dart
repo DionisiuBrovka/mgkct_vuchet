@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'features/admin/cubit/admin_cubit.dart';
 import 'features/admin/screens/admin_home_screen.dart';
 import 'features/admin/screens/review_screen.dart';
+import 'features/admin/screens/statistics_screen.dart';
 import 'features/auth/cubit/auth_cubit.dart';
 import 'features/auth/cubit/auth_state.dart';
 import 'features/auth/models/app_user.dart';
@@ -88,6 +90,10 @@ class _AppState extends State<App> {
           ),
           routes: [
             GoRoute(
+              path: 'statistics',
+              builder: (_, __) => StatisticsScreen(repository: getIt()),
+            ),
+            GoRoute(
               path: 'review/:teacher/:month/:year',
               builder: (_, state) => BlocProvider(
                 create: (_) => AdminCubit(getIt()),
@@ -119,6 +125,9 @@ class _AppState extends State<App> {
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
         title: 'Вычитка',
+        locale: const Locale('ru'),
+        supportedLocales: const [Locale('ru')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         theme: AppTheme.light,
         routerConfig: _router,
       ),

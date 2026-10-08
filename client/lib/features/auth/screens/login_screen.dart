@@ -107,6 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onPressed: _loadNames,
                                   child: const Text('Повторить'))
                             ],
+                            if (!_loadingNames &&
+                                _loadError == null &&
+                                _users.isEmpty)
+                              const Text(
+                                  'Пользователей пока нет. Обратитесь к администратору.'),
                             if (_loadingNames)
                               const LinearProgressIndicator()
                             else
@@ -129,14 +134,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                               overflow: TextOverflow.ellipsis),
                                         ))
                                     .toList(),
-                                onChanged: (v) =>
-                                    setState(() => _selectedProfileId = v),
+                                onChanged: loading
+                                    ? null
+                                    : (v) =>
+                                        setState(() => _selectedProfileId = v),
                                 validator: (v) =>
                                     v == null ? 'Выберите ФИО' : null,
                               ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _passwordCtrl,
+                              enabled: !loading,
+                              autofillHints: const [AutofillHints.password],
+                              textInputAction: TextInputAction.done,
                               obscureText: _obscure,
                               decoration: InputDecoration(
                                 labelText: 'Пароль',
@@ -158,7 +168,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 24),
                             FilledButton(
-                              onPressed: loading
+                              onPressed: loading ||
+                                      _loadingNames ||
+                                      _users.isEmpty
                                   ? null
                                   : () {
                                       if (_formKey.currentState!.validate()) {

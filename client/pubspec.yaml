@@ -10,6 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_localizations:
+    sdk: flutter
+  web: ^1.1.1
+
   # Shelf API client
   http: ^1.2.0
 
@@ -26,6 +30,7 @@ dependencies:
 
   # Utils
   uuid: ^4.4.0
+  cupertino_icons: ^2.0.0
 
 dev_dependencies:
   flutter_test:

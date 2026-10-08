@@ -12,6 +12,8 @@ import 'src/auth_service.dart';
 import 'src/pocketbase_store.dart';
 import 'src/report_queries.dart';
 import 'src/report_commands.dart';
+import 'src/statistics_service.dart';
+import 'src/statistics_xlsx.dart';
 
 export 'src/pocketbase_store.dart';
 
@@ -68,6 +70,7 @@ Handler createHandler(
   final service = auth ?? AuthService(store);
   final queries = ReportQueries(store);
   final commands = ReportCommands(store, queries);
+  final statistics = StatisticsService(store, queries);
   final attempts = <String, List<DateTime>>{};
   final router = Router()
     ..get('/api/health', (Request _) async {
@@ -204,6 +207,36 @@ Handler createHandler(
           body['revision'] as int,
           confirm: action == 'confirm',
         ),
+      );
+    })
+    ..get(
+      '/api/admin/statistics/options',
+      (Request request) async => jsonResponse(
+        await statistics.options(request.context['actor'] as Actor),
+      ),
+    )
+    ..get(
+      '/api/admin/statistics',
+      (Request request) async => jsonResponse(
+        await statistics.read(
+          request.context['actor'] as Actor,
+          request.url.queryParameters,
+        ),
+      ),
+    )
+    ..get('/api/admin/statistics.xlsx', (Request request) async {
+      final data = await statistics.read(
+        request.context['actor'] as Actor,
+        request.url.queryParameters,
+      );
+      return Response.ok(
+        statisticsXlsx(data),
+        headers: {
+          'content-type':
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'content-disposition': 'attachment; filename="teaching-hours.xlsx"',
+          'cache-control': 'no-store',
+        },
       );
     })
     ..post('/api/auth/logout', (Request request) async {

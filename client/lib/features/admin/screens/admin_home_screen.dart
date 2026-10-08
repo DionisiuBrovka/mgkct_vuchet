@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../shared/widgets/screen_hint.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../../core/constants.dart';
 import '../../../core/domain.dart';
+import '../../../core/report_repository.dart';
+import '../../../injection.dart';
+import '../../../shared/widgets/screen_hint.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../cubit/admin_cubit.dart';
@@ -12,241 +14,283 @@ import '../cubit/admin_state.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
-
   @override
   State<AdminHomeScreen> createState() => _AdminHomeScreenState();
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
-  late String _selectedMonth;
   late int _academicYear;
+  late String _month;
+  List<int> _years = [];
   String _query = '';
   ReportStatus? _status;
-
-  // Календарный год выбранного месяца (определяется автоматически)
-  int get _calendarYear =>
-      AppConstants.yearForMonth(_selectedMonth, _academicYear);
+  Timer? _debounce;
+  final _search = TextEditingController();
+  String? _periodError;
+  int get _monthNumber => const [
+        9,
+        10,
+        11,
+        12,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ][AppConstants.months.indexOf(_month)];
+  int get _year => AppConstants.yearForMonth(_month, _academicYear);
 
   @override
   void initState() {
     super.initState();
     _academicYear = AppConstants.currentAcademicYear();
-
-    // По умолчанию — текущий месяц (если он входит в список)
-    final currentMonthRu = _monthNumToRu(DateTime.now().month);
-    _selectedMonth = AppConstants.months.contains(currentMonthRu)
-        ? currentMonthRu
-        : AppConstants.months.first;
-
+    _years = [_academicYear];
+    final month = DateTime.now().month;
+    _month = AppConstants.months[const [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7]
+        .indexOf(month == 8 ? 9 : month)];
+    _loadPeriods();
     _load();
   }
 
-  String _monthNumToRu(int m) {
-    const map = {
-      1: 'Январь',
-      2: 'Февраль',
-      3: 'Март',
-      4: 'Апрель',
-      5: 'Май',
-      6: 'Июнь',
-      7: 'Июль',
-      9: 'Сентябрь',
-      10: 'Октябрь',
-      11: 'Ноябрь',
-      12: 'Декабрь',
-    };
-    return map[m] ?? 'Сентябрь';
+  Future<void> _loadPeriods() async {
+    try {
+      final periods = await getIt<ReportRepository>().adminPeriods();
+      if (mounted) {
+        setState(() {
+          _years = {
+            _academicYear,
+            ...periods.map((p) => p['academicYear'] as int)
+          }.toList()
+            ..sort((a, b) => b.compareTo(a));
+          _periodError = null;
+        });
+      }
+    } catch (error) {
+      if (mounted) setState(() => _periodError = '$error');
+    }
   }
 
-  void _load() => context.read<AdminCubit>().loadMonth(
-      _monthRuToNum(_selectedMonth), _calendarYear,
-      query: _query, status: _status);
-
-  int _monthRuToNum(String month) => const {
-        'Сентябрь': 9,
-        'Октябрь': 10,
-        'Ноябрь': 11,
-        'Декабрь': 12,
-        'Январь': 1,
-        'Февраль': 2,
-        'Март': 3,
-        'Апрель': 4,
-        'Май': 5,
-        'Июнь': 6,
-        'Июль': 7,
-      }[month]!;
+  Future<void> _load() => context
+      .read<AdminCubit>()
+      .loadMonth(_monthNumber, _year, query: _query, status: _status);
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Вычитки — Завуч'),
-            Text(
-              'Учебный год $_academicYear/${_academicYear + 1}',
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Выйти из учётной записи',
+  Widget build(BuildContext context) => Scaffold(
+      appBar: AppBar(title: const Text('Вычитка · Завуч'), actions: [
+        IconButton(
+            onPressed: () => context.push('/admin/statistics'),
+            tooltip: 'Статистика и Excel',
+            icon: const Icon(Icons.bar_chart_outlined)),
+        IconButton(
             onPressed: () => context.read<AuthCubit>().logout(),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              children: [
-                // Выбор учебного года
-                SizedBox(
-                  width: 140,
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _academicYear,
-                    decoration: const InputDecoration(labelText: 'Уч. год'),
-                    items: List.generate(3, (i) => _academicYear - 1 + i)
-                        .map((y) => DropdownMenuItem(
-                              value: y,
-                              child: Text('$y/${y + 1}'),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => _academicYear = v);
-                        _load();
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Выбор месяца
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedMonth,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Месяц'),
-                    items: AppConstants.months
-                        .map((m) => DropdownMenuItem(
-                              value: m,
+            tooltip: 'Выйти',
+            icon: const Icon(Icons.logout)),
+      ]),
+      body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1120),
+              child: RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        const ScreenHint(
+                            title: 'Проверка месячных отчётов',
+                            message:
+                                'Откройте отчёт на проверке, сверьте часы с годовым планом и подтвердите или верните на доработку. Подтверждённые отчёты доступны только для просмотра.'),
+                        const SizedBox(height: 16),
+                        Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                                onPressed: () =>
+                                    context.push('/admin/statistics'),
+                                icon: const Icon(Icons.download_outlined),
+                                label:
+                                    const Text('Годовая статистика и Excel'))),
+                        const SizedBox(height: 20),
+                        Wrap(spacing: 12, runSpacing: 16, children: [
+                          SizedBox(
+                              width: 260,
+                              child: DropdownButtonFormField<int>(
+                                  initialValue: _academicYear,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Учебный год'),
+                                  items: [
+                                    for (final y in _years)
+                                      DropdownMenuItem(
+                                          value: y, child: Text('$y–${y + 1}'))
+                                  ],
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setState(() => _academicYear = v);
+                                      _load();
+                                    }
+                                  })),
+                          SizedBox(
+                              width: 260,
+                              child: DropdownButtonFormField<String>(
+                                  initialValue: _month,
+                                  decoration:
+                                      const InputDecoration(labelText: 'Месяц'),
+                                  isExpanded: true,
+                                  items: [
+                                    for (final month in AppConstants.months)
+                                      DropdownMenuItem(
+                                          value: month,
+                                          child: Text(
+                                              '$month ${AppConstants.yearForMonth(month, _academicYear)}'))
+                                  ],
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setState(() => _month = v);
+                                      _load();
+                                    }
+                                  })),
+                          SizedBox(
+                              width: 260,
+                              child: DropdownButtonFormField<String>(
+                                  initialValue: '',
+                                  decoration: const InputDecoration(
+                                      labelText: 'Статус'),
+                                  isExpanded: true,
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: '', child: Text('Все статусы')),
+                                    DropdownMenuItem(
+                                        value: 'draft',
+                                        child: Text('Черновик')),
+                                    DropdownMenuItem(
+                                        value: 'submitted',
+                                        child: Text('На проверке')),
+                                    DropdownMenuItem(
+                                        value: 'confirmed',
+                                        child: Text('Подтверждён'))
+                                  ],
+                                  onChanged: (v) {
+                                    setState(() => _status =
+                                        v == null || v.isEmpty
+                                            ? null
+                                            : ReportStatus.values.byName(v));
+                                    _load();
+                                  })),
+                          SizedBox(
+                              width: 260,
+                              child: TextField(
+                                  controller: _search,
+                                  maxLength: 200,
+                                  decoration: InputDecoration(
+                                      labelText: 'ФИО преподавателя',
+                                      prefixIcon: const Icon(Icons.search),
+                                      counterText: '',
+                                      suffixIcon: _query.isEmpty
+                                          ? null
+                                          : IconButton(
+                                              tooltip: 'Очистить поиск',
+                                              icon: const Icon(Icons.clear),
+                                              onPressed: () {
+                                                _debounce?.cancel();
+                                                _search.clear();
+                                                setState(() => _query = '');
+                                                _load();
+                                              })),
+                                  onChanged: (value) {
+                                    setState(() => _query = value);
+                                    _debounce?.cancel();
+                                    _debounce = Timer(
+                                        const Duration(milliseconds: 300),
+                                        _load);
+                                  })),
+                        ]),
+                        if (_periodError != null)
+                          TextButton(
+                              onPressed: _loadPeriods,
                               child: Text(
-                                '$m ${AppConstants.yearForMonth(m, _academicYear)}',
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => _selectedMonth = v);
-                        _load();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Row(children: [
-              Expanded(
-                  child: TextField(
-                decoration: const InputDecoration(
-                    labelText: 'Поиск по ФИО', prefixIcon: Icon(Icons.search)),
-                onChanged: (value) {
-                  setState(() => _query = value);
-                  _load();
-                },
-              )),
-              const SizedBox(width: 12),
-              DropdownButton<ReportStatus?>(
-                value: _status,
-                hint: const Text('Все статусы'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Все')),
-                  ...ReportStatus.values.map((value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(switch (value) {
-                        ReportStatus.draft => 'Черновик',
-                        ReportStatus.submitted => 'На проверке',
-                        ReportStatus.confirmed => 'Подтверждён',
-                      }))),
-                ],
-                onChanged: (value) {
-                  setState(() => _status = value);
-                  _load();
-                },
-              ),
-            ]),
-          ),
-          Expanded(
-            child: BlocBuilder<AdminCubit, AdminState>(
-              builder: (ctx, state) {
-                if (state is AdminLoading || state is AdminInitial) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state is AdminError) {
-                  return Center(
-                      child: TextButton(
-                          onPressed: _load,
-                          child: Text('Повторить: ${state.message}')));
-                }
-                final loaded = state as AdminMonthLoaded;
-                final teachers = loaded.teachers;
-
-                return RefreshIndicator(
-                  onRefresh: () async => _load(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: teachers.length + 1,
-                    itemBuilder: (_, i) {
-                      if (i == 0) {
-                        return ScreenHint(
-                            title: 'Проверка отчётов',
-                            message: teachers.isEmpty
-                                ? 'За выбранный период преподаватели не найдены. Проверьте учебный год и месяц. Профили преподавателей настраивает администратор.'
-                                : 'Выберите учебный год и месяц выше, затем откройте отчёт «На проверке». Проверьте часы и замены, подтвердите отчёт или верните его преподавателю. Черновики ещё не отправлены; подтверждённые отчёты можно просматривать.');
-                      }
-                      final teacher = teachers[i - 1];
-                      final status = teacher.status;
-                      return Card(
-                        child: ListTile(
-                          title: Text(teacher.name,
-                              overflow: TextOverflow.ellipsis),
-                          subtitle: Text(switch (status) {
-                            ReportStatus.draft =>
-                              'Ожидается отправка преподавателем',
-                            ReportStatus.submitted =>
-                              'Нажмите, чтобы проверить отчёт',
-                            ReportStatus.confirmed =>
-                              'Нажмите, чтобы посмотреть отчёт',
-                          }),
-                          trailing: StatusBadge(status),
-                          onTap: status == ReportStatus.submitted ||
-                                  status == ReportStatus.confirmed
-                              ? () async {
-                                  await context.push(
-                                    '/admin/review/${teacher.id}/$_selectedMonth/$_calendarYear',
-                                  );
-                                  _load();
-                                }
-                              : null,
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+                                  'Не удалось загрузить годы: $_periodError. Повторить')),
+                        const SizedBox(height: 24),
+                        BlocBuilder<AdminCubit, AdminState>(
+                            builder: (context, state) {
+                          if (state is AdminLoading || state is AdminInitial) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          if (state is AdminError) {
+                            return TextButton(
+                                onPressed: _load,
+                                child: Text('Повторить: ${state.message}'));
+                          }
+                          if (state is! AdminMonthLoaded) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                    '$_month $_year · Преподавателей: ${state.teachers.length}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                const SizedBox(height: 12),
+                                if (state.teachers.isEmpty)
+                                  const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 20),
+                                      child: Text(
+                                          'По выбранным фильтрам преподавателей нет. Измените поиск или статус.')),
+                                for (final teacher in state.teachers)
+                                  Card(
+                                      child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          onTap: teacher.status ==
+                                                  ReportStatus.draft
+                                              ? null
+                                              : () async {
+                                                  await context.push(
+                                                      '/admin/review/${teacher.id}/$_month/$_year');
+                                                  if (mounted) _load();
+                                                },
+                                          child: Padding(
+                                              padding: const EdgeInsets.all(18),
+                                              child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(teacher.name,
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .titleMedium),
+                                                    const SizedBox(height: 8),
+                                                    Wrap(
+                                                        spacing: 12,
+                                                        runSpacing: 8,
+                                                        crossAxisAlignment:
+                                                            WrapCrossAlignment
+                                                                .center,
+                                                        children: [
+                                                          StatusBadge(
+                                                              teacher.status),
+                                                          Text(teacher.status ==
+                                                                  ReportStatus
+                                                                      .draft
+                                                              ? 'Ожидается отправка'
+                                                              : teacher.status ==
+                                                                      ReportStatus
+                                                                          .submitted
+                                                                  ? 'Открыть для проверки →'
+                                                                  : 'Посмотреть отчёт →'),
+                                                        ]),
+                                                  ])))),
+                              ]);
+                        }),
+                      ])))));
 }

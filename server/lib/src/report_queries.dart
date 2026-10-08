@@ -173,6 +173,29 @@ class ReportQueries {
     return result;
   }
 
+  Future<Map<String, dynamic>> annualProgress(
+    Actor actor,
+    String teacher,
+    int year,
+  ) async {
+    if (actor.role != 'admin') {
+      throw const ApiError(403, 'Доступ запрещён', code: 'forbidden');
+    }
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final headers = await _annualHeaders(teacher, year);
+      final progress = await _progress(teacher, year, null, headers);
+      if (_versions(headers) ==
+          _versions(await _annualHeaders(teacher, year))) {
+        return progress;
+      }
+    }
+    throw const ApiError(
+      409,
+      'Отчёты изменились. Повторите выгрузку.',
+      code: 'revision_conflict',
+    );
+  }
+
   Future<Map<String, dynamic>> report(
     Actor actor,
     String teacher,
@@ -183,6 +206,7 @@ class ReportQueries {
       teacherOwn(actor, teacher, year, month);
     else if (actor.role != 'admin')
       throw const ApiError(403, 'Доступ запрещён', code: 'forbidden');
+    final owner = await store.get('users', teacher);
     for (var attempt = 0; attempt < 3; attempt++) {
       final reports = await store.list(
         'teaching_reports',
@@ -314,7 +338,7 @@ class ReportQueries {
         continue;
       return {
         'id': header?.id,
-        'teacher': {'id': teacher},
+        'teacher': {'id': teacher, 'name': owner.data['name']},
         'period': {
           'academicYear': academicYear(year, month),
           'year': year,

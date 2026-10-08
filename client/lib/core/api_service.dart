@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -68,6 +69,35 @@ class ApiService {
           'Сервер не ответил вовремя. Введённые данные сохранены в форме');
     } on http.ClientException {
       throw const ApiException('Нет связи с сервером');
+    }
+  }
+
+  Future<Uint8List> download(
+      List<String> path, Map<String, String> query) async {
+    final uri = Uri.parse(baseUrl)
+        .replace(pathSegments: ['api', ...path], queryParameters: query);
+    try {
+      final response =
+          await _client.get(uri).timeout(const Duration(seconds: 60));
+      if (response.statusCode != 200) {
+        if (response.statusCode == 401) _expired.add(null);
+        String message = 'Не удалось выгрузить статистику. Повторите попытку.';
+        try {
+          final value = jsonDecode(response.body) as Map;
+          message = (value['error'] as Map?)?['message']?.toString() ?? message;
+        } on FormatException {/* Non-JSON proxy error. */}
+        throw ApiException(message, response.statusCode);
+      }
+      if (!(response.headers['content-type'] ?? '')
+          .contains('spreadsheetml.sheet')) {
+        throw const ApiException('Сервер вернул неверный формат файла');
+      }
+      return response.bodyBytes;
+    } on TimeoutException {
+      throw const ApiException(
+          'Выгрузка заняла слишком много времени. Уточните фильтры.');
+    } on http.ClientException {
+      throw const ApiException('Нет связи с сервером. Повторите выгрузку.');
     }
   }
 

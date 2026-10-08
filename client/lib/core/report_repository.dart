@@ -1,9 +1,18 @@
+import 'dart:typed_data';
 import 'api_service.dart';
 import 'domain.dart';
 
 class ReportRepository {
   ReportRepository(this._api);
   final ApiService _api;
+  Future<Map<String, dynamic>> statisticsOptions() async =>
+      Map<String, dynamic>.from(
+          await _api.request('GET', ['admin', 'statistics', 'options']) as Map);
+  Future<Map<String, dynamic>> statistics(Map<String, String> filters) async =>
+      Map<String, dynamic>.from(await _api
+          .request('GET', ['admin', 'statistics'], query: filters) as Map);
+  Future<Uint8List> exportStatistics(Map<String, String> filters) =>
+      _api.download(['admin', 'statistics.xlsx'], filters);
   Future<ReportDto> report(String teacherId, int year, int month) async =>
       ReportDto.fromJson(
           await _api.request('GET', ['reports', teacherId, '$year', '$month'])
