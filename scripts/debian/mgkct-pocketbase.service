@@ -1,0 +1,23 @@
+[Unit]
+Description=MGKCT PocketBase
+After=network.target
+
+[Service]
+Type=simple
+User=mgkct-pb
+Group=mgkct-pb
+WorkingDirectory=/var/lib/mgkct/pb_data
+ExecStart=/opt/mgkct/current/pocketbase serve --http=127.0.0.1:8091 --dir=/var/lib/mgkct/pb_data --migrationsDir=/opt/mgkct/current/pb_migrations --hooksDir=/opt/mgkct/current/pb_hooks --automigrate=false
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=60
+LimitNOFILE=4096
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mgkct/pb_data
+
+[Install]
+WantedBy=multi-user.target

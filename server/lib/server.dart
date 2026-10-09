@@ -148,11 +148,19 @@ Handler createHandler(
     )
     ..get('/api/admin/reports', (Request request) async {
       final q = request.url.queryParameters;
+      final allMonths = q.containsKey('academicYear');
+      if (allMonths && (q.containsKey('year') || q.containsKey('month'))) {
+        throw const ApiError(
+          422,
+          'Выберите месяц или учебный год',
+          code: 'invalid_request',
+        );
+      }
       return jsonResponse(
         await queries.adminOverview(
           request.context['actor'] as Actor,
-          int.tryParse(q['year'] ?? '') ?? -1,
-          int.tryParse(q['month'] ?? '') ?? -1,
+          int.tryParse(q[allMonths ? 'academicYear' : 'year'] ?? '') ?? -1,
+          allMonths ? null : int.tryParse(q['month'] ?? '') ?? -1,
           query: q['q'],
           requestedStatus: q['status'],
         ),

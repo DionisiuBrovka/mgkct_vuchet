@@ -8,7 +8,7 @@ class AdminCubit extends Cubit<AdminState> {
   AdminCubit(this._repo) : super(const AdminInitial());
   final ReportRepository _repo;
   int _request = 0;
-  Future<void> loadMonth(int month, int year,
+  Future<void> loadMonth(int? month, int year,
       {String query = '', ReportStatus? status}) async {
     final request = ++_request;
     emit(const AdminLoading());

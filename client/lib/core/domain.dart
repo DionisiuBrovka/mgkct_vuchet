@@ -168,11 +168,18 @@ class ReportDto {
 
 class AdminTeacherDto {
   const AdminTeacherDto(
-      {required this.id, required this.name, required this.status});
+      {required this.id,
+      required this.name,
+      required this.status,
+      this.year,
+      this.month});
   final String id, name;
+  final int? year, month;
   final ReportStatus status;
   factory AdminTeacherDto.fromJson(Map<String, dynamic> value) =>
       AdminTeacherDto(
+          year: value['year'] as int?,
+          month: value['month'] as int?,
           id: _string(value, 'id'),
           name: _string(value, 'name'),
           status: ReportStatus.values.byName(_string(value, 'status')));

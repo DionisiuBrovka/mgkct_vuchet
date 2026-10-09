@@ -20,6 +20,7 @@ class AdminHomeScreen extends StatefulWidget {
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
   late int _academicYear;
+  static const _allMonths = 'Все месяцы';
   late String _month;
   List<int> _years = [];
   String _query = '';
@@ -27,20 +28,24 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Timer? _debounce;
   final _search = TextEditingController();
   String? _periodError;
-  int get _monthNumber => const [
-        9,
-        10,
-        11,
-        12,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ][AppConstants.months.indexOf(_month)];
-  int get _year => AppConstants.yearForMonth(_month, _academicYear);
+  int? get _monthNumber => _month == _allMonths
+      ? null
+      : const [
+          9,
+          10,
+          11,
+          12,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ][AppConstants.months.indexOf(_month)];
+  int get _year => _month == _allMonths
+      ? _academicYear
+      : AppConstants.yearForMonth(_month, _academicYear);
 
   @override
   void initState() {
@@ -75,6 +80,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Future<void> _load() => context
       .read<AdminCubit>()
       .loadMonth(_monthNumber, _year, query: _query, status: _status);
+  String _reportMonth(AdminTeacherDto teacher) => teacher.month == null
+      ? _month
+      : AppConstants.months[
+          const [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7].indexOf(teacher.month!)];
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -144,6 +154,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                       const InputDecoration(labelText: 'Месяц'),
                                   isExpanded: true,
                                   items: [
+                                    const DropdownMenuItem(
+                                        value: _allMonths,
+                                        child: Text(_allMonths)),
                                     for (final month in AppConstants.months)
                                       DropdownMenuItem(
                                           value: month,
@@ -235,7 +248,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                    '$_month $_year · Преподавателей: ${state.teachers.length}',
+                                    _month == _allMonths
+                                        ? 'Все месяцы · $_academicYear–${_academicYear + 1} · Отчётов: ${state.teachers.length}'
+                                        : '$_month $_year · Преподавателей: ${state.teachers.length}',
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium),
@@ -245,7 +260,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                       padding:
                                           EdgeInsets.symmetric(vertical: 20),
                                       child: Text(
-                                          'По выбранным фильтрам преподавателей нет. Измените поиск или статус.')),
+                                          'По выбранным фильтрам записей нет. Измените период, поиск или статус.')),
                                 for (final teacher in state.teachers)
                                   Card(
                                       child: InkWell(
@@ -256,7 +271,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                               ? null
                                               : () async {
                                                   await context.push(
-                                                      '/admin/review/${teacher.id}/$_month/$_year');
+                                                      '/admin/review/${teacher.id}/${_reportMonth(teacher)}/${teacher.year ?? _year}');
                                                   if (mounted) _load();
                                                 },
                                           child: Padding(
@@ -269,6 +284,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                                         style: Theme.of(context)
                                                             .textTheme
                                                             .titleMedium),
+                                                    if (_month == _allMonths)
+                                                      Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(top: 8),
+                                                          child: Text(
+                                                              '${_reportMonth(teacher)} ${teacher.year ?? _year}')),
                                                     const SizedBox(height: 8),
                                                     Wrap(
                                                         spacing: 12,

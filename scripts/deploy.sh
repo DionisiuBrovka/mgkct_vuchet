@@ -3,11 +3,17 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+if [[ "${1:-}" == debian ]]; then
+  shift
+  exec bash "$ROOT/scripts/install-debian.sh" "$@"
+fi
 usage() { cat <<'EOF'
 Usage: bash scripts/deploy.sh [up|status|logs|stop|down|--self-test]
+       sudo bash scripts/deploy.sh debian [--origin http://SERVER:8090]
 
-Uses Podman and .env to deploy the Web/Shelf and PocketBase containers. `down`
-keeps persistent data. `--self-test` is isolated and never reads .env.
+Default commands use Podman and .env; `down` keeps persistent data.
+`debian` installs native systemd services and never reads the checkout .env.
+`--self-test` is isolated and never reads .env.
 EOF
 }
 die() { echo "$*" >&2; exit 2; }

@@ -413,6 +413,106 @@ void main() {
     },
   );
 
+  test(
+    'all-month overview uses academic years, filters and admin scope',
+    () async {
+      final user = await data
+          .collection('users')
+          .create(
+            body: {
+              'email': 'annual-overview@example.invalid',
+              'password': password,
+              'passwordConfirm': password,
+              'name': 'Годовой обзор',
+              'role': 'teacher',
+              'is_active': true,
+              'auth_version': 1,
+            },
+          );
+      for (final p in [(2025, 9), (2026, 9), (2027, 1), (2027, 9)]) {
+        await data.send(
+          '/api/internal/report-write',
+          method: 'POST',
+          body: {
+            'teacher': user.id,
+            'year': p.$1,
+            'month': p.$2,
+            'status': p.$2 == 1 ? 'draft' : 'submitted',
+            'submitted_at': null,
+            'confirmed_at': null,
+            'confirmed_by': null,
+            'expected_revision': 0,
+            'entries': [],
+            'substitutions': [
+              {
+                'id': null,
+                'date': '${p.$1}-${p.$2.toString().padLeft(2, '0')}-05',
+                'description': 'Замена',
+                'hours': '1',
+              },
+            ],
+          },
+        );
+      }
+      final admin = session(
+        await request(
+          'POST',
+          '/api/auth/login',
+          body: {'userId': adminId, 'password': password},
+        ),
+      );
+      final teacher = session(
+        await request(
+          'POST',
+          '/api/auth/login',
+          body: {'userId': user.id, 'password': password},
+        ),
+      );
+      final path =
+          '/api/admin/reports?academicYear=2026&q=${Uri.encodeQueryComponent('Годовой')}';
+      final all = await request('GET', path, cookie: admin);
+      expect(all.statusCode, 200, reason: all.body);
+      final rows = jsonDecode(all.body)['teachers'] as List;
+      expect(rows.map((r) => [r['year'], r['month']]).toList(), [
+        [2027, 1],
+        [2026, 9],
+      ]);
+      expect(rows.every((r) => r['id'] == user.id), isTrue);
+      final filtered = await request(
+        'GET',
+        '$path&status=submitted',
+        cookie: admin,
+      );
+      expect(
+        (jsonDecode(filtered.body)['teachers'] as List).single['month'],
+        9,
+      );
+      final empty = await request(
+        'GET',
+        '$path&status=confirmed',
+        cookie: admin,
+      );
+      expect(jsonDecode(empty.body)['teachers'], isEmpty);
+      expect((await request('GET', path, cookie: teacher)).statusCode, 403);
+      for (final query in [
+        'academicYear=bad',
+        'academicYear=2026&month=9',
+        'academicYear=2026&year=2026',
+        'year=2026',
+        'academicYear=2100',
+      ]) {
+        expect(
+          (await request(
+            'GET',
+            '/api/admin/reports?$query',
+            cookie: admin,
+          )).statusCode,
+          422,
+        );
+      }
+    },
+  );
+
   test('save, submit, return and confirm use one revision each', () async {
     Future<String> login(String id) async => session(
       await request(

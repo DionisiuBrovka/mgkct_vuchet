@@ -68,7 +68,8 @@ hours; substitution input — `id`, `date`, `description`, `hours`.
 | POST `/teacher/reports/{year}/{month}/submit` | teacher | ReportInput | Report submitted | 401,403,409,422 |
 | GET `/reports/{teacherId}/{year}/{month}` | teacher/admin | — | Report | 401,403,404,409 |
 | GET `/admin/periods` | admin | — | `{periods:[{academicYear,year,month}]}` | 401,403 |
-| GET `/admin/reports?year=Y&month=M&q=T&status=S` | admin | optional q/status | `{teachers:[{id,name,status}]}` | 401,403,422 |
+| GET `/admin/reports?year=Y&month=M&q=T&status=S` | admin | optional q/status | `{teachers:[{id,name,status,year,month}]}` | 401,403,422 |
+| GET `/admin/reports?academicYear=Y&q=T&status=S` | admin | optional q/status | `{teachers:[{id,name,status,year,month}]}` | 401,403,422 |
 | POST `/admin/reports/{teacherId}/{year}/{month}/confirm` | admin | `{revision}` | Report confirmed | 401,403,409 |
 | POST `/admin/reports/{teacherId}/{year}/{month}/return` | admin | `{revision}` | Report draft | 401,403,409 |
 
@@ -78,6 +79,14 @@ Admin period list includes current and persisted historical periods. Filtering i
 server-side: `q` is optional trimmed name fragment (max 200), `status` optional
 enum; both combine with AND before pagination is needed. This prevents client
 from receiving a wider directory than the selected review scope.
+
+`academicYear` selects all persisted reports for active teachers from September
+of Y through July of Y+1, sorted by period descending and then name/ID.
+Each row represents one teacher/month; missing reports are not synthesized in
+this mode. Monthly mode still includes active teachers without a saved report
+as draft. `academicYear` cannot be combined with `year` or `month` (422).
+Name and status filters apply to either mode; the returned row period is used
+when opening the report.
 
 Save/submit are complete aggregate commands. For first write `revision=0`; on
 each successful save, submit, confirm or return revision grows by one. Server

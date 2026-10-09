@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mgkct_teaching_hours/core/api_service.dart';
 import 'package:mgkct_teaching_hours/core/report_repository.dart';
 import 'package:mgkct_teaching_hours/features/admin/screens/statistics_screen.dart';
+import 'package:mgkct_teaching_hours/features/admin/screens/review_screen.dart';
 import 'package:mgkct_teaching_hours/features/admin/screens/admin_home_screen.dart';
 import 'package:mgkct_teaching_hours/features/admin/cubit/admin_cubit.dart';
 import 'package:mgkct_teaching_hours/features/teacher/screens/substitution_dialog.dart';
@@ -133,6 +135,140 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  for (final width in [360, 768, 1440]) {
+    testWidgets(
+        'review tabs keep decisions and exact readonly hours at ${width}px',
+        (tester) async {
+      tester.view.physicalSize = Size(width.toDouble(), 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var writes = 0;
+      final data = fixture.report(status: 'submitted');
+      data['entries'][0]['lectureHours'] = '0.123456789012345678901';
+      data['entries'][0]['assignment']['subject'] =
+          'Проектирование и разработка информационных систем';
+      data['substitutions'] = [
+        {
+          'id': 'substitution',
+          'date': '2026-09-10',
+          'description': 'Замена преподавателя в группе ПР-21',
+          'hours': '1.25'
+        }
+      ];
+      final api =
+          ApiService('http://localhost', client: MockClient((request) async {
+        if (request.method != 'GET') {
+          writes++;
+          data['status'] = 'draft';
+        }
+        return http.Response(jsonEncode(data), 200,
+            headers: {'content-type': 'application/json'});
+      }));
+      final cubit = AdminCubit(ReportRepository(api));
+      addTearDown(cubit.close);
+      addTearDown(api.close);
+      await tester.pumpWidget(app(BlocProvider.value(
+          value: cubit,
+          child: MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(1.5)),
+              child: const ReviewScreen(
+                  teacher: 'teacher-id', month: 'Сентябрь', year: 2026)))));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextFormField), findsNothing);
+      expect(find.text('0.123456789012345678901 ч'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Замены (1)'));
+      await tester.pumpAndSettle();
+      expect(find.text('Замена преподавателя в группе ПР-21'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Вернуть на доработку'), 300);
+      expect(find.text('Подтвердить отчёт'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Вернуть на доработку'));
+      await tester.pumpAndSettle();
+      expect(writes, 1);
+      expect(find.text('Вернуть на доработку'), findsNothing);
+      expect(find.text('Подтвердить отчёт'), findsNothing);
+      await tester.tap(find.text('Назначения (1)'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextFormField), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('all months requests annual reports and opens the row period',
+      (tester) async {
+    final requests = <Uri>[];
+    final api =
+        ApiService('http://localhost', client: MockClient((request) async {
+      requests.add(request.url);
+      final value = request.url.path.endsWith('/periods')
+          ? {
+              'periods': [
+                {'academicYear': 2026}
+              ]
+            }
+          : {
+              'teachers': [
+                {
+                  'id': 'teacher',
+                  'name': 'Преподаватель',
+                  'status': 'submitted',
+                  'year': 2026,
+                  'month': 9
+                },
+                if (request.url.queryParameters.containsKey('academicYear'))
+                  {
+                    'id': 'teacher',
+                    'name': 'Преподаватель',
+                    'status': 'confirmed',
+                    'year': 2027,
+                    'month': 1
+                  },
+              ]
+            };
+      return http.Response(jsonEncode(value), 200,
+          headers: {'content-type': 'application/json'});
+    }));
+    final repo = ReportRepository(api);
+    final cubit = AdminCubit(repo);
+    getIt.registerSingleton<ReportRepository>(repo);
+    addTearDown(getIt.reset);
+    addTearDown(cubit.close);
+    addTearDown(api.close);
+    final router = GoRouter(routes: [
+      GoRoute(
+          path: '/',
+          builder: (context, state) =>
+              BlocProvider.value(value: cubit, child: const AdminHomeScreen())),
+      GoRoute(
+          path: '/admin/review/:teacher/:month/:year',
+          builder: (_, state) => Scaffold(
+              body: Text(
+                  'Открыт ${state.pathParameters['month']} ${state.pathParameters['year']}'))),
+    ]);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+        MaterialApp.router(theme: AppTheme.light, routerConfig: router));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Все месяцы').last);
+    await tester.pumpAndSettle();
+    final query = requests.last.queryParameters;
+    expect(query['academicYear'], isNotNull);
+    expect(query.containsKey('month'), isFalse);
+    expect(query.containsKey('year'), isFalse);
+    expect(find.text('Сентябрь 2026'), findsOneWidget);
+    expect(find.text('Январь 2027'), findsOneWidget);
+    await tester.ensureVisible(find.text('Январь 2027'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Январь 2027'));
+    await tester.pumpAndSettle();
+    expect(find.text('Открыт Январь 2027'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   for (final width in [320, 768, 1440]) {
     testWidgets('admin filters and statistics fit ${width}px', (tester) async {

@@ -19,7 +19,8 @@ class AdminMonthLoaded extends AdminState {
   const AdminMonthLoaded(this.teachers,
       {required this.year, required this.month, this.query = '', this.status});
   final List<AdminTeacherDto> teachers;
-  final int year, month;
+  final int year;
+  final int? month;
   final String query;
   final ReportStatus? status;
   @override

@@ -367,13 +367,14 @@ class ReportQueries {
   Future<Map<String, dynamic>> adminOverview(
     Actor actor,
     int year,
-    int month, {
+    int? month, {
     String? query,
     String? requestedStatus,
   }) async {
     if (actor.role != 'admin')
       throw const ApiError(403, 'Доступ запрещён', code: 'forbidden');
-    period(year, month);
+    period(year, month ?? 9);
+    if (month == null) period(year + 1, 7);
     if (query != null && (query.length > 200 || query.trim() != query))
       throw const ApiError(422, 'Некорректный фильтр', code: 'invalid_request');
     if (requestedStatus != null &&
@@ -385,8 +386,10 @@ class ReportQueries {
     );
     final reports = await store.list(
       'teaching_reports',
-      filter: 'year = {:year} && month = {:month}',
-      params: {'year': year, 'month': month},
+      filter: month == null
+          ? '(year = {:year} && month >= 9 && month <= 12) || (year = {:nextYear} && month >= 1 && month <= 7)'
+          : 'year = {:year} && month = {:month}',
+      params: {'year': year, 'nextYear': year + 1, 'month': month},
     );
     final states = {
       for (final row in reports)
@@ -394,12 +397,27 @@ class ReportQueries {
     };
     final teachers =
         [
-              for (final user in users)
-                {
-                  'id': user.id,
-                  'name': user.data['name'],
-                  'status': states[user.id] ?? 'draft',
-                },
+              if (month == null)
+                for (final report in reports)
+                  for (final user in users.where(
+                    (user) => user.id == report.data['teacher'],
+                  ))
+                    {
+                      'id': user.id,
+                      'name': user.data['name'],
+                      'status': report.data['status'],
+                      'year': report.data['year'],
+                      'month': report.data['month'],
+                    }
+              else
+                for (final user in users)
+                  {
+                    'id': user.id,
+                    'name': user.data['name'],
+                    'status': states[user.id] ?? 'draft',
+                    'year': year,
+                    'month': month,
+                  },
             ]
             .where(
               (row) =>
@@ -410,11 +428,15 @@ class ReportQueries {
                   (requestedStatus == null || row['status'] == requestedStatus),
             )
             .toList()
-          ..sort(
-            (a, b) => '${a['name']}\u0000${a['id']}'.compareTo(
-              '${b['name']}\u0000${b['id']}',
-            ),
-          );
+          ..sort((a, b) {
+            final periodOrder = ((b['year'] as num) * 12 + (b['month'] as num))
+                .compareTo((a['year'] as num) * 12 + (a['month'] as num));
+            return periodOrder != 0
+                ? periodOrder
+                : '${a['name']}\u0000${a['id']}'.compareTo(
+                    '${b['name']}\u0000${b['id']}',
+                  );
+          });
     return {'teachers': teachers};
   }
 

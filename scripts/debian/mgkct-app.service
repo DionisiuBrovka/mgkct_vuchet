@@ -1,0 +1,24 @@
+[Unit]
+Description=MGKCT Teaching Hours Web and API
+Wants=mgkct-pocketbase.service
+After=network.target mgkct-pocketbase.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=mgkct-app
+Group=mgkct-app
+WorkingDirectory=/opt/mgkct/current
+EnvironmentFile=/etc/mgkct/app.env
+ExecStart=/opt/mgkct/current/server
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

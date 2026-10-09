@@ -40,14 +40,14 @@ class ReportRepository {
       List<Map<String, dynamic>>.from(
           (await _api.request('GET', ['admin', 'periods'])
               as Map<String, dynamic>)['periods'] as List);
-  Future<List<AdminTeacherDto>> adminReports(int year, int month,
+  Future<List<AdminTeacherDto>> adminReports(int year, int? month,
       {String? query, ReportStatus? status}) async {
     final rows = List<Map<String, dynamic>>.from((await _api.request('GET', [
       'admin',
       'reports'
     ], query: {
-      'year': '$year',
-      'month': '$month',
+      if (month == null) 'academicYear': '$year' else 'year': '$year',
+      if (month != null) 'month': '$month',
       if (query != null) 'q': query,
       if (status != null) 'status': status.name
     }) as Map<String, dynamic>)['teachers'] as List);
