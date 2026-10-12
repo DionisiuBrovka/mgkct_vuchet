@@ -7,7 +7,7 @@ Type=simple
 User=mgkct-pb
 Group=mgkct-pb
 WorkingDirectory=/var/lib/mgkct/pb_data
-ExecStart=/opt/mgkct/current/pocketbase serve --http=127.0.0.1:8091 --dir=/var/lib/mgkct/pb_data --migrationsDir=/opt/mgkct/current/pb_migrations --hooksDir=/opt/mgkct/current/pb_hooks --automigrate=false
+ExecStart=/opt/mgkct/current/pocketbase serve --http=0.0.0.0:8091 --dir=/var/lib/mgkct/pb_data --migrationsDir=/opt/mgkct/current/pb_migrations --hooksDir=/opt/mgkct/current/pb_hooks --automigrate=false
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=60
