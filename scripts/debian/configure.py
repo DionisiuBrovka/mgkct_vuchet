@@ -67,7 +67,7 @@ def configure(directory, origin):
     write_private(directory / 'credentials.txt',
                   f"Приложение: {config['origin']}\nПользователь: Завуч\n"
                   f"Начальный пароль: {config['admin_password']}\n\n"
-                  f"PocketBase: http://127.0.0.1:8091/_/ (через SSH-туннель)\n"
+                  f"PocketBase: http://IP-СЕРВЕРА:8091/_/ (замените IP на адрес сервера)\n"
                   f"Email: {config['service_email']}\nПароль: {config['service_password']}\n\n"
                   'Пароль приложения после ручной смены здесь не обновляется.\n'
                   'Сервисный пароль PocketBase используется приложением; меняйте его согласованно с install.json и повторным запуском установки.\n')
