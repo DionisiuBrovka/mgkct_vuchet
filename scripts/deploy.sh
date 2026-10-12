@@ -73,7 +73,7 @@ case "$cmd" in
     podman network exists mgkct_network || podman network create mgkct_network
     podman volume exists mgkct_data || podman volume create mgkct_data >/dev/null
     podman rm -f mgkct-app mgkct-pb >/dev/null 2>&1 || true
-    podman run -d --name mgkct-pb --network mgkct_network --network-alias pocketbase -p "127.0.0.1:${PB_HOST_PORT:-8091}:8090" -v mgkct_data:/pb/pb_data -e PB_SERVICE_EMAIL -e PB_SERVICE_PASSWORD mgkct-pb:local >/dev/null
+    podman run -d --name mgkct-pb --network mgkct_network --network-alias pocketbase -p "${PB_BIND:-0.0.0.0}:${PB_HOST_PORT:-8091}:8090" -v mgkct_data:/pb/pb_data -e PB_SERVICE_EMAIL -e PB_SERVICE_PASSWORD mgkct-pb:local >/dev/null
     for _ in $(seq 1 60); do podman exec mgkct-pb wget -qO- http://127.0.0.1:8090/api/health >/dev/null 2>&1 && break; sleep 1; done
     podman exec mgkct-pb wget -qO- http://127.0.0.1:8090/api/health >/dev/null || { podman logs --tail 50 mgkct-pb >&2; exit 3; }
     podman run -d --name mgkct-app --network mgkct_network -p "${APP_BIND:-0.0.0.0}:${APP_PORT:-8090}:8080" -e POCKETBASE_URL=http://pocketbase:8090 -e PB_SERVICE_EMAIL -e PB_SERVICE_PASSWORD -e PUBLIC_ORIGIN mgkct-app:local >/dev/null
