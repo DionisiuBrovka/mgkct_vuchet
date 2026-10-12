@@ -154,4 +154,4 @@ stopped=false
 rm -rf -- "$workspace"
 echo "Готово: $(python3 "$ROOT/scripts/debian/configure.py" get /etc/mgkct origin)"
 echo 'Данные входа: sudo cat /etc/mgkct/credentials.txt'
-echo 'PocketBase: SSH-туннель на порт 8091; инструкция в README.md.'
+echo 'PocketBase: http://IP-СЕРВЕРА:8091/_/; инструкция в README.md.'
