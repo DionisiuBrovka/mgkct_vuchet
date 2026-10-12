@@ -4,7 +4,8 @@
 Debian 13 amd64 без контейнеров через `scripts/deploy.sh debian`.
 В этом режиме данные — `/var/lib/mgkct/pb_data`, конфигурация — `/etc/mgkct`,
 версии — `/opt/mgkct/releases`, автозапуск — `mgkct-app` и `mgkct-pocketbase`.
-PB слушает loopback:8091, Shelf раздаёт Web и API на выбранном LAN origin.
+Уточнение владельца 2026-10-12: PB доступен администратору по IP сервера
+на 0.0.0.0:8091 без SSH-туннеля, Shelf раздаёт Web и API на выбранном LAN origin.
 До миграций обновление останавливает службы и сохраняет базу/конфигурацию
 в `/var/backups/mgkct`; пароли генерируются только при первой настройке.
 Инструкция по установке, обновлению и восстановлению находится в README.
@@ -32,10 +33,10 @@ arguments or environment variables.
 
 ## Network, data и session
 
-Podman network `mgkct_network` connects `app` and `pocketbase`. Only app
-publishes `${APP_BIND:-0.0.0.0}:${APP_PORT:-8090}` to the LAN. PB binds only
-`127.0.0.1:${PB_HOST_PORT:-8091}` on host for local administrator diagnostics;
-ordinary LAN devices cannot reach it. Inside network app uses
+Podman network `mgkct_network` connects `app` and `pocketbase`. App
+publishes `${APP_BIND:-0.0.0.0}:${APP_PORT:-8090}` to the LAN. PB publishes
+`${PB_BIND:-0.0.0.0}:${PB_HOST_PORT:-8091}` for administrator access by server IP.
+Set `PB_BIND=127.0.0.1` to restrict it to local access. Inside network app uses
 `POCKETBASE_URL=http://pocketbase:8090`; this URL never reaches Flutter.
 
 Shelf serves release Web and `/api` from one public origin. Default is HTTP in
@@ -49,7 +50,7 @@ Persistent named volume `mgkct_data` mounts only `/pb/pb_data`. Images, build
 outputs, temporary test dirs and app container filesystem are disposable. No
 service password, token or data directory is committed. `.env.example` supplies
 names/placeholders only: `PB_SERVICE_EMAIL`, `PB_SERVICE_PASSWORD`,
-`APP_PORT`, `APP_BIND`, `PB_HOST_PORT`, `PUBLIC_ORIGIN`, `NO_PROXY` and optional
+`APP_PORT`, `APP_BIND`, `PB_BIND`, `PB_HOST_PORT`, `PUBLIC_ORIGIN`, `NO_PROXY` and optional
 image overrides for tests. Production `.env` is mode 0600 and ignored.
 
 ## Canonical scripts
