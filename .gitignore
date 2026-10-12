@@ -55,6 +55,9 @@ client/assets/service_account.json
 data/pocketbase/pocketbase
 data/pocketbase/pb_data/
 data/pocketbase/pb_public/
+# Locally generated deliverables and working artifacts.
+output/
+tmp/
 **/build/
 **/coverage/
 
