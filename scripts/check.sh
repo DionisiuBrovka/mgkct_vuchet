@@ -34,7 +34,7 @@ version_contains flutter 'Flutter 3.44.8' --version
 version_contains data/pocketbase/pocketbase '0.40.1' --version
 
 stage 'Installer tests'
-bash -n scripts/deploy.sh scripts/install-debian.sh
+bash -n scripts/deploy.sh
 python3 -m unittest discover -s scripts/tests
 stage 'PocketBase schema tests'
 python3 -m unittest discover -s data/pocketbase/tests

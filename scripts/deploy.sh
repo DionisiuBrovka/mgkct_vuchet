@@ -1,88 +1,154 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
-if [[ "${1:-}" == debian ]]; then
-  shift
-  exec bash "$ROOT/scripts/install-debian.sh" "$@"
-fi
-usage() { cat <<'EOF'
-Usage: bash scripts/deploy.sh [up|status|logs|stop|down|--self-test]
-       sudo bash scripts/deploy.sh debian [--origin http://SERVER:8090]
-
-Default commands use Podman and .env; `down` keeps persistent data.
-`debian` installs native systemd services and never reads the checkout .env.
-`--self-test` is isolated and never reads .env.
-EOF
+usage() {
+  cat <<'HELP'
+Установка «Вычитки» на Debian 13 x86_64.
+  sudo bash scripts/deploy.sh
+  sudo bash scripts/deploy.sh --origin http://192.168.1.10:8090
+Повторный запуск обновляет код, сохраняя данные и пароли.
+Адрес берётся из --origin, затем .env; при первом запуске без них запрашивается.
+HELP
 }
-die() { echo "$*" >&2; exit 2; }
-need() { command -v "$1" >/dev/null || die "Missing required tool: $1"; }
-[[ "${1:-up}" == '--help' ]] && { usage; exit 0; }
-need podman
-[[ "$(uname -m)" == x86_64 ]] || die 'PocketBase runtime requires x86_64.'
-bash scripts/fetch-pocketbase.sh
-[[ "$(sha256sum data/pocketbase/pocketbase | awk '{print $1}')" == bfdc715d14d922f3dfcb8333cc439e7eb1d44ed602456662299bf14f4d6387b8 ]] || die 'PocketBase checksum mismatch.'
-cmd="${1:-up}"
-[[ $# -le 1 ]] || die 'Unsupported arguments.'
-if [[ "$cmd" == '--self-test' ]]; then
-  need python3
-  test_root="$(mktemp -d "${TMPDIR:-/tmp}/mgkct-deploy-test.XXXXXX")"
-  test_id="task25-$$-$(date +%s)"
-  test_network="${test_id}-network"
-  test_volume="${test_id}-data"
-  test_pb="${test_id}-pb"
-  test_app="${test_id}-app"
-  test_port="$(python3 - <<'PY'
-import socket
-s = socket.socket(); s.bind(('127.0.0.1', 0)); print(s.getsockname()[1]); s.close()
-PY
-)"
-  test_password="test-$(sha256sum <<<"$test_id" | cut -c1-32)"
-  cleanup_test() {
-    podman rm -f "$test_app" "$test_pb" >/dev/null 2>&1 || true
-    podman network rm "$test_network" >/dev/null 2>&1 || true
-    podman volume rm "$test_volume" >/dev/null 2>&1 || true
-    rm -rf -- "$test_root"
-  }
-  trap cleanup_test EXIT INT TERM
-  podman build -f Dockerfile -t "${test_id}-app" .
-  podman build -f pocketbase.Dockerfile -t "${test_id}-pb" .
-  podman network create "$test_network" >/dev/null
-  podman volume create "$test_volume" >/dev/null
-  podman run -d --name "$test_pb" --network "$test_network" --network-alias pocketbase -v "$test_volume":/pb/pb_data -e PB_SERVICE_EMAIL=test@example.invalid -e PB_SERVICE_PASSWORD="$test_password" "${test_id}-pb" >/dev/null
-  for _ in $(seq 1 60); do podman exec "$test_pb" wget -qO- http://127.0.0.1:8090/api/health >/dev/null 2>&1 && break; sleep 1; done
-  podman exec "$test_pb" wget -qO- http://127.0.0.1:8090/api/health >/dev/null || exit 3
-  origin="http://127.0.0.1:$test_port"
-  podman run -d --name "$test_app" --network "$test_network" -p "127.0.0.1:$test_port:8080" -e POCKETBASE_URL=http://pocketbase:8090 -e PB_SERVICE_EMAIL=test@example.invalid -e PB_SERVICE_PASSWORD="$test_password" -e PUBLIC_ORIGIN="$origin" "${test_id}-app" >/dev/null
-  for _ in $(seq 1 60); do curl -fsS "$origin/api/health" >/dev/null 2>&1 && break; sleep 1; done
-  curl -fsS "$origin/api/health" >/dev/null || exit 3
-  podman restart "$test_app" >/dev/null
-  curl -fsS "$origin/api/health" >/dev/null || exit 3
-  echo 'Isolated deploy self-test passed.'
-  exit 0
+ORIGIN=''
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h) usage; exit 0;;
+    --origin) [[ $# -ge 2 ]] || { usage >&2; exit 2; }; ORIGIN="$2"; shift 2;;
+    *) usage >&2; exit 2;;
+  esac
+done
+[[ $EUID -eq 0 ]] || { echo 'Запустите скрипт через sudo или от root.' >&2; exit 2; }
+source /etc/os-release
+[[ "$ID" == debian && "$VERSION_ID" == 13 ]] || { echo 'Требуется Debian 13.' >&2; exit 2; }
+[[ "$(uname -m)" == x86_64 ]] || { echo 'Поддерживается только x86_64 (amd64).' >&2; exit 2; }
+[[ -d /run/systemd/system ]] || { echo 'Требуется работающий systemd.' >&2; exit 2; }
+exec 9>/run/lock/mgkct-install.lock
+flock -n 9 || { echo 'Установка уже выполняется.' >&2; exit 2; }
+for path in client/pubspec.lock server/pubspec.lock scripts/debian/configure.py; do
+  [[ -f "$ROOT/$path" ]] || { echo "Неполная копия проекта: $path" >&2; exit 2; }
+done
+if [[ ! -f /etc/mgkct/install.env && ! -f /etc/mgkct/install.json && -z "$ORIGIN" && ! -f "$ROOT/.env" ]]; then
+  [[ -t 0 ]] || { echo 'Для первого запуска укажите --origin http://IP-СЕРВЕРА:8090' >&2; exit 2; }
+  suggested_ip="$(hostname -I | awk '{print $1}')"
+  read -r -p "Адрес приложения [http://${suggested_ip:-127.0.0.1}:8090]: " ORIGIN
+  ORIGIN="${ORIGIN:-http://${suggested_ip:-127.0.0.1}:8090}"
 fi
-case "$cmd" in
-  up)
-    [[ -f .env ]] || die 'Missing .env; copy .env.example and set values.'
-    set -a; source .env; set +a
-    : "${PB_SERVICE_EMAIL:?}"; : "${PB_SERVICE_PASSWORD:?}"; : "${PUBLIC_ORIGIN:?}"
-    [[ "$PB_SERVICE_PASSWORD" != replace-with-* ]] || die 'Replace PB_SERVICE_PASSWORD.'
-    podman build -f Dockerfile -t mgkct-app:local .
-    podman build -f pocketbase.Dockerfile -t mgkct-pb:local .
-    podman network exists mgkct_network || podman network create mgkct_network
-    podman volume exists mgkct_data || podman volume create mgkct_data >/dev/null
-    podman rm -f mgkct-app mgkct-pb >/dev/null 2>&1 || true
-    podman run -d --name mgkct-pb --network mgkct_network --network-alias pocketbase -p "${PB_BIND:-0.0.0.0}:${PB_HOST_PORT:-8091}:8090" -v mgkct_data:/pb/pb_data -e PB_SERVICE_EMAIL -e PB_SERVICE_PASSWORD mgkct-pb:local >/dev/null
-    for _ in $(seq 1 60); do podman exec mgkct-pb wget -qO- http://127.0.0.1:8090/api/health >/dev/null 2>&1 && break; sleep 1; done
-    podman exec mgkct-pb wget -qO- http://127.0.0.1:8090/api/health >/dev/null || { podman logs --tail 50 mgkct-pb >&2; exit 3; }
-    podman run -d --name mgkct-app --network mgkct_network -p "${APP_BIND:-0.0.0.0}:${APP_PORT:-8090}:8080" -e POCKETBASE_URL=http://pocketbase:8090 -e PB_SERVICE_EMAIL -e PB_SERVICE_PASSWORD -e PUBLIC_ORIGIN mgkct-app:local >/dev/null
-    for _ in $(seq 1 60); do curl -fsS "${PUBLIC_ORIGIN}/api/health" >/dev/null 2>&1 && break; sleep 1; done
-    curl -fsS "${PUBLIC_ORIGIN}/api/health" || { podman logs --tail 50 mgkct-app >&2; exit 3; }
-    echo "Ready: $PUBLIC_ORIGIN";;
-  status) podman ps --filter name=mgkct-;;
-  logs) podman logs --tail 100 mgkct-app; podman logs --tail 100 mgkct-pb;;
-  stop) podman stop mgkct-app mgkct-pb;;
-  down) podman rm -f mgkct-app mgkct-pb;;
-  *) usage >&2; exit 64;;
-esac
+if [[ -f /var/lib/mgkct/pb_data/data.db && ! -f /etc/mgkct/install.env && ! -f /etc/mgkct/install.json ]]; then
+  echo 'Обнаружена база без конфигурации установщика. Автоматическое подключение отменено.' >&2
+  exit 2
+fi
+stopped=false
+trap 'code=$?; if (( code != 0 )); then echo "Установка не завершена (код $code)." >&2; if $stopped; then echo "Службы могут быть остановлены. Данные сохранены; копии: /var/backups/mgkct. Исправьте причину и повторите команду. Журнал: journalctl -u mgkct-app -u mgkct-pocketbase -n 100" >&2; fi; fi' EXIT
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends ca-certificates curl git unzip xz-utils zip libglu1-mesa python3 rsync util-linux
+for account in mgkct-build mgkct-app mgkct-pb; do
+  if ! id "$account" >/dev/null 2>&1; then
+    useradd --system --user-group --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$account"
+  fi
+done
+install -d -m 0755 /opt/mgkct /opt/mgkct/releases /var/lib/mgkct
+install -d -m 0700 /etc/mgkct /var/backups/mgkct
+install -d -o mgkct-pb -g mgkct-pb -m 0700 /var/lib/mgkct/pb_data
+install -d -o mgkct-build -g mgkct-build -m 0750 /var/cache/mgkct-build
+python3 "$ROOT/scripts/debian/configure.py" configure /etc/mgkct "$ORIGIN" "$ROOT/.env"
+APP_PORT="$(python3 "$ROOT/scripts/debian/configure.py" get /etc/mgkct port)"
+
+# Build as a separate user with no access to runtime credentials or the database.
+BUILD_ROOT=/var/cache/mgkct-build
+SDK="$BUILD_ROOT/flutter-3.44.8"
+if [[ ! -f "$SDK/.mgkct-verified" ]]; then
+  archive="$BUILD_ROOT/flutter.tar.xz"
+  curl --fail --location --retry 3 --output "$archive" https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.44.8-stable.tar.xz
+  echo '672089e001571a9fbb209a495c583580c0c6c73ef98999264ba07fa93ace332d  '"$archive" | sha256sum --check --status
+  sdk_temp="$(mktemp -d "$BUILD_ROOT/sdk.XXXXXX")"
+  tar -xf "$archive" -C "$sdk_temp" --no-same-owner
+  rm -rf -- "$SDK"
+  mv "$sdk_temp/flutter" "$SDK"
+  rmdir "$sdk_temp"
+  rm -f "$archive"
+  touch "$SDK/.mgkct-verified"
+  chown -R mgkct-build:mgkct-build "$SDK"
+fi
+release_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+workspace="$BUILD_ROOT/source-$release_id"
+install -d -o mgkct-build -g mgkct-build -m 0750 "$workspace"
+for component in client server; do
+  rsync -a --safe-links --exclude=.env --exclude='.env.*' --exclude=build --exclude=.dart_tool --exclude=.git \
+    "$ROOT/$component/" "$workspace/$component/"
+done
+chown -R mgkct-build:mgkct-build "$workspace"
+runuser -u mgkct-build -- env -i HOME="$BUILD_ROOT" PUB_CACHE="$BUILD_ROOT/pub-cache" PATH="$SDK/bin:/usr/bin:/bin" \
+  bash -c 'set -euo pipefail
+    cd "$1"
+    flutter config --no-analytics
+    dart --disable-analytics
+    flutter --version | grep -F "Flutter 3.44.8"
+    dart --version | grep -F "3.12.2"
+    cd "$1/client"
+    flutter pub get --enforce-lockfile
+    flutter build web --release
+    cd "$1/server"
+    dart pub get --enforce-lockfile
+    dart compile exe bin/server.dart -o "$1/server-executable"
+  ' bash "$workspace"
+bash "$ROOT/scripts/fetch-pocketbase.sh"
+release="/opt/mgkct/releases/$release_id"
+install -d -m 0755 "$release"
+install -m 0755 "$workspace/server-executable" "$release/server"
+install -m 0755 "$ROOT/data/pocketbase/pocketbase" "$release/pocketbase"
+cp -R "$workspace/client/build/web" "$release/public"
+cp -R "$ROOT/data/pocketbase/pb_migrations" "$ROOT/data/pocketbase/pb_hooks" "$release/"
+chmod -R a+rX "$release"
+chown -R root:root "$release"
+
+# Check foreign port owners before stopping an existing installation.
+python3 "$ROOT/scripts/debian/configure.py" ports /etc/mgkct
+stopped=true
+for unit in mgkct-app.service mgkct-pocketbase.service; do
+  if [[ "$(systemctl show --property=LoadState --value "$unit")" != not-found ]]; then
+    systemctl stop "$unit"
+    if systemctl is-active --quiet "$unit"; then
+      echo "Не удалось остановить $unit; копирование базы отменено." >&2
+      exit 3
+    fi
+  fi
+done
+if [[ -f /var/lib/mgkct/pb_data/data.db ]]; then
+  backup="/var/backups/mgkct/$release_id"
+  install -d -m 0700 "$backup"
+  tar -cf "$backup/pb_data.tar" -C /var/lib/mgkct pb_data
+  cp -a /etc/mgkct "$backup/config"
+  readlink -f /opt/mgkct/current > "$backup/release.txt" || true
+  echo "Резервная копия: $backup"
+fi
+(cd /var/lib/mgkct && runuser -u mgkct-pb -- "$release/pocketbase" migrate up --dir=/var/lib/mgkct/pb_data \
+  --migrationsDir="$release/pb_migrations" --automigrate=false)
+python3 "$ROOT/scripts/debian/configure.py" superuser /etc/mgkct "$release/pocketbase"
+ln -sfn "$release" /opt/mgkct/current.next
+mv -Tf /opt/mgkct/current.next /opt/mgkct/current
+install -m 0644 "$ROOT/scripts/debian/mgkct-pocketbase.service" /etc/systemd/system/mgkct-pocketbase.service
+install -m 0644 "$ROOT/scripts/debian/mgkct-app.service" /etc/systemd/system/mgkct-app.service
+systemctl daemon-reload
+systemctl enable mgkct-pocketbase.service mgkct-app.service
+systemctl restart mgkct-pocketbase.service
+wait_health() {
+  for _ in $(seq 1 60); do
+    curl --noproxy '*' --fail --silent --max-time 2 "$1" >/dev/null && return 0
+    sleep 1
+  done
+  echo "Служба не готова: $1" >&2
+  return 1
+}
+wait_health http://127.0.0.1:8091/api/health
+python3 "$ROOT/scripts/debian/configure.py" bootstrap /etc/mgkct
+systemctl restart mgkct-app.service
+wait_health "http://127.0.0.1:$APP_PORT/api/health"
+curl --noproxy '*' --fail --silent --max-time 10 "http://127.0.0.1:$APP_PORT/" >/dev/null
+stopped=false
+rm -rf -- "$workspace"
+echo "Готово: $(python3 "$ROOT/scripts/debian/configure.py" get /etc/mgkct origin)"
+echo 'Данные входа: sudo cat /etc/mgkct/credentials.txt'
+echo 'PocketBase: http://IP-СЕРВЕРА:8091/_/; инструкция в README.md.'

@@ -11,7 +11,7 @@ before changing product behaviour.
 - `confirmed` reports are immutable; header, entries and substitutions change atomically.
 - Tests never use `.env`, production volumes, users or PB_DATA_DIR.
 - Run `bash scripts/check.sh` for a full local gate. Deploy via `scripts/deploy.sh`;
-  normal deploy never deletes its persistent volume.
+  normal deploy never deletes persistent data.
 - Generated files are committed only when imported; regenerate with
   `dart run build_runner build --delete-conflicting-outputs` from `client/`.
 - Add comments only for non-obvious invariants or security boundaries.

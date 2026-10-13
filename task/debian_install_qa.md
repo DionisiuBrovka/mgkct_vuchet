@@ -1,5 +1,9 @@
 # Установка Debian 13 — 2026-10-09
 
+Исторический протокол предыдущей версии. Текущая команда и конфигурация
+описаны в `README.md` и `task/runtime_contract.md`; новые проверки — в
+`task/deploy_qa.md`.
+
 ## Реализация
 
 Входная команда: `sudo bash scripts/deploy.sh debian`.

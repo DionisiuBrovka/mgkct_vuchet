@@ -1,20 +1,23 @@
-# Deploy QA
+# Проверка единого Debian-деплоя — 2026-10-13
 
-2026-09-18, local Linux x86_64 / Podman 5.8.4:
+Предыдущий контейнерный протокол заменён нативной установкой через
+`sudo bash scripts/deploy.sh` на Debian 13 amd64.
 
-- `bash scripts/deploy.sh --self-test` — exit 0: собраны фиксированные Web,
-  Shelf и PocketBase images; создан отдельный network/volume; health Shelf и
-  PB проверен до и после restart app; временные containers/network/volume
-  очищены.
-- `bash -n scripts/deploy.sh`, `sh -n entrypoint.sh` и `git diff --check` —
-  exit 0.
-- В финальной приёмке обычный `bash scripts/deploy.sh up` с временно заданным
-  `PUBLIC_ORIGIN=http://192.168.111.11:8090` завершился exit 0. Health прошёл
-  через `127.0.0.1` и LAN-адрес хоста; app был опубликован на `0.0.0.0:8090`,
-  PB — только на `127.0.0.1:8091`. Созданные контейнеры, network и volume были
-  остановлены и удалены после проверки.
-- Второе LAN-устройство не было доступно: это не отмечено как выполненная
-  ручная проверка. PB self-test не публиковался на host port.
+- `bash scripts/check.sh` — успешно: installer/PocketBase/server/client тесты,
+  анализ, сборка Shelf и Flutter Web, проверка пробелов.
+- Шесть тестов установщика прошли на временной конфигурации и базе PocketBase:
+  адрес и порт, пароли по 8 символов, неизменность паролей при обновлении,
+  перенос `install.json`, права 0600, первый и повторный bootstrap.
+- `bash -n scripts/deploy.sh`, `python3 -m py_compile scripts/debian/configure.py`
+  и `git diff --check` — успешно.
+- Реестр `docker.io/library/dart:3.12.2-sdk` ответил на проверку manifest.
+  Образ Flutter 3.44.8 в прежнем реестре отсутствует; Dockerfile использует
+  проверяемый архив Flutter 3.44.8, как и Debian-установщик.
+- `podman build --pull=always -f Dockerfile -t mgkct-app:refactor-check .` —
+  успешно: архив Flutter прошёл SHA-256, собраны Flutter Web, Dart executable
+  и итоговый образ.
 
-Обычный запуск: скопировать `.env.example` в `.env`, заменить пароль и
-`PUBLIC_ORIGIN`, затем `bash scripts/deploy.sh up`. `down` сохраняет volume.
+Нативная установка на физическом сервере владельца, его firewall и доступность
+со второго компьютера локальной сети в этом изменении не проверялись.
+Предыдущий изолированный Debian 13/systemd прогон описан в
+`task/debian_install_qa.md`; он выполнен до этого рефакторинга.

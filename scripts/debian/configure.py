@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import secrets
 import socket
+import string
 import subprocess
 import sys
 from urllib.parse import urlencode, urlsplit
@@ -32,26 +33,79 @@ def write_private(path, text):
     temporary.replace(path)
 
 
-def configure(directory, origin):
-    path = directory / 'install.json'
+def read_environment(path, allowed=None):
+    values = {}
+    if not path.exists():
+        return values
+    for line in path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        match = re.fullmatch(r'([A-Z][A-Z0-9_]*)=(.*)', line)
+        if not match:
+            raise ValueError(f'Некорректная строка в {path.name}')
+        key, value = match.groups()
+        if allowed is not None and key not in allowed:
+            continue
+        if key in values:
+            raise ValueError(f'Повторяющийся параметр {key} в {path.name}')
+        if value.startswith('"'):
+            value = json.loads(value)
+        if not isinstance(value, str) or '\n' in value or '\r' in value:
+            raise ValueError(f'Некорректный параметр {key}')
+        values[key] = value
+    return values
+
+
+def generated_password():
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
+
+
+def configure(directory, origin, source_env=None):
+    path = directory / 'install.env'
+    keys = {'PUBLIC_ORIGIN', 'PB_SERVICE_EMAIL', 'PB_SERVICE_PASSWORD',
+            'ADMIN_EMAIL', 'ADMIN_PASSWORD'}
+    source = read_environment(Path(source_env), {'PUBLIC_ORIGIN'}) if source_env else {}
+    existing = path.exists() or (directory / 'install.json').exists()
+    requested_origin = origin or ('' if existing else source.get('PUBLIC_ORIGIN', ''))
     if path.exists():
-        config = json.loads(path.read_text())
-        if origin:
-            new_origin, port = parse_origin(origin)
-            if port != config['port']:
-                raise ValueError('При обновлении сохраняйте прежний порт приложения.')
-            config['origin'] = new_origin
+        values = read_environment(path, keys)
+        if set(values) != keys:
+            raise ValueError('Неполная конфигурация install.env')
+        old_origin, old_port = parse_origin(values['PUBLIC_ORIGIN'])
+        config = dict(origin=old_origin, port=old_port,
+                      service_email=values['PB_SERVICE_EMAIL'],
+                      service_password=values['PB_SERVICE_PASSWORD'],
+                      admin_email=values['ADMIN_EMAIL'],
+                      admin_password=values['ADMIN_PASSWORD'])
+    elif (directory / 'install.json').exists():
+        config = json.loads((directory / 'install.json').read_text())
     else:
-        origin, port = parse_origin(origin)
-        config = dict(origin=origin, port=port,
+        initial_origin, port = parse_origin(requested_origin)
+        service_password = generated_password()
+        admin_password = generated_password()
+        while admin_password == service_password:
+            admin_password = generated_password()
+        config = dict(origin=initial_origin, port=port,
                       service_email='service@example.invalid',
-                      service_password=secrets.token_urlsafe(36),
+                      service_password=service_password,
                       admin_email='admin@example.invalid',
-                      admin_password=secrets.token_urlsafe(24))
+                      admin_password=admin_password)
+    if requested_origin:
+        new_origin, port = parse_origin(requested_origin)
+        if port != config['port']:
+            raise ValueError('При обновлении сохраняйте прежний порт приложения.')
+        config['origin'] = new_origin
     parse_origin(config['origin'])
     if any('\n' in str(v) or '\r' in str(v) for v in config.values()):
         raise ValueError('Некорректный файл конфигурации')
-    write_private(path, json.dumps(config, ensure_ascii=False, indent=2) + '\n')
+    values = {'PUBLIC_ORIGIN': config['origin'],
+              'PB_SERVICE_EMAIL': config['service_email'],
+              'PB_SERVICE_PASSWORD': config['service_password'],
+              'ADMIN_EMAIL': config['admin_email'],
+              'ADMIN_PASSWORD': config['admin_password']}
+    write_private(path, ''.join(f'{key}={json.dumps(value)}\n' for key, value in values.items()))
     environment = {
         'HOST': '0.0.0.0', 'PORT': str(config['port']),
         'STATIC_DIR': '/opt/mgkct/current/public',
@@ -61,17 +115,24 @@ def configure(directory, origin):
         'PB_SERVICE_PASSWORD': config['service_password'],
         'NO_PROXY': 'localhost,127.0.0.1,::1',
     }
-    def quote(value):
-        return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
-    write_private(directory / 'app.env', ''.join(f'{k}={quote(v)}\n' for k, v in environment.items()))
+    write_private(directory / 'app.env', ''.join(f'{k}={json.dumps(v)}\n' for k, v in environment.items()))
     write_private(directory / 'credentials.txt',
                   f"Приложение: {config['origin']}\nПользователь: Завуч\n"
                   f"Начальный пароль: {config['admin_password']}\n\n"
                   f"PocketBase: http://IP-СЕРВЕРА:8091/_/ (замените IP на адрес сервера)\n"
                   f"Email: {config['service_email']}\nПароль: {config['service_password']}\n\n"
                   'Пароль приложения после ручной смены здесь не обновляется.\n'
-                  'Сервисный пароль PocketBase используется приложением; меняйте его согласованно с install.json и повторным запуском установки.\n')
+                  'Сервисный пароль PocketBase используется приложением; меняйте его согласованно с install.env и повторным запуском установки.\n')
+    (directory / 'install.json').unlink(missing_ok=True)
     return config
+
+
+def load_config(directory):
+    values = read_environment(directory / 'install.env')
+    origin, port = parse_origin(values['PUBLIC_ORIGIN'])
+    return dict(origin=origin, port=port, service_email=values['PB_SERVICE_EMAIL'],
+                service_password=values['PB_SERVICE_PASSWORD'], admin_email=values['ADMIN_EMAIL'],
+                admin_password=values['ADMIN_PASSWORD'])
 
 
 def pb_request(base, path, body=None, token=None):
@@ -85,7 +146,7 @@ def pb_request(base, path, body=None, token=None):
 
 
 def bootstrap(directory, base='http://127.0.0.1:8091'):
-    config = json.loads((directory / 'install.json').read_text())
+    config = load_config(directory)
     token = pb_request(base, '/api/collections/_superusers/auth-with-password', {
         'identity': config['service_email'], 'password': config['service_password'],
     })['token']
@@ -109,7 +170,7 @@ def check_ports(config):
     for port, unit in [(config['port'], 'mgkct-app'), (8091, 'mgkct-pocketbase')]:
         with socket.socket() as sock:
             try:
-                sock.bind(('0.0.0.0' if unit == 'mgkct-app' else '127.0.0.1', port))
+                sock.bind(('0.0.0.0', port))
             except OSError:
                 if subprocess.run(['systemctl', 'is-active', '--quiet', unit]).returncode:
                     raise ValueError(f'Порт {port} занят другой службой. Освободите его перед установкой.')
@@ -119,9 +180,9 @@ def main():
     action, directory, *args = sys.argv[1:]
     directory = Path(directory)
     if action == 'configure':
-        configure(directory, args[0])
+        configure(directory, args[0], args[1] if len(args) > 1 else None)
         return
-    config = json.loads((directory / 'install.json').read_text())
+    config = load_config(directory)
     if action == 'get':
         if args[0] not in ('origin', 'port'):
             raise ValueError('Недопустимый ключ')
