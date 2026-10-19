@@ -71,6 +71,33 @@ class ReportCommands {
         body['substitutions'] is! List)
       throw const ApiError(422, 'Некорректный запрос', code: 'invalid_request');
     final expected = body['revision'] as int;
+    final existing = await store.list(
+      'teaching_reports',
+      filter: 'teacher = {:teacher} && year = {:year} && month = {:month}',
+      params: {'teacher': actor.id, 'year': year, 'month': month},
+    );
+    if (existing.length > 1 ||
+        (existing.isNotEmpty && existing.single.data['status'] != 'draft')) {
+      throw const ApiError(
+        409,
+        'Статус отчёта изменился',
+        code: 'status_conflict',
+      );
+    }
+    final savedAssignments = existing.isEmpty
+        ? <String>{}
+        : (await store.list(
+            'teaching_report_entries',
+            filter: 'report = {:id}',
+            params: {'id': existing.single.id},
+          )).map((row) => row.data['assignment'] as String).toSet();
+    final activeAssignments = (await store.list(
+      'assignments',
+      filter:
+          'teacher = {:teacher} && academic_year = {:year} && is_archived = false',
+      params: {'teacher': actor.id, 'year': queries.academicYear(year, month)},
+    )).map((row) => row.id).toSet();
+    final expectedAssignments = {...savedAssignments, ...activeAssignments};
     final entries = <Map<String, dynamic>>[];
     final ids = <String>{};
     final assignments = <String>{};
@@ -94,7 +121,8 @@ class ReportCommands {
         throw const ApiError(422, 'Повтор назначения', code: 'invalid_request');
       final record = await store.get('assignments', assignment);
       if (record.data['teacher'] != actor.id ||
-          record.data['academic_year'] != queries.academicYear(year, month))
+          record.data['academic_year'] != queries.academicYear(year, month) ||
+          !expectedAssignments.contains(assignment))
         throw const ApiError(
           409,
           'Состав назначений изменился',
@@ -107,13 +135,8 @@ class ReportCommands {
           storage[field]!: Decimal.parse(item[field]).toString(),
       });
     }
-    final current = await store.list(
-      'assignments',
-      filter: 'teacher = {:teacher} && academic_year = {:year}',
-      params: {'teacher': actor.id, 'year': queries.academicYear(year, month)},
-    );
-    if (!assignments.containsAll(current.map((r) => r.id)) ||
-        assignments.length != current.length)
+    if (!assignments.containsAll(expectedAssignments) ||
+        assignments.length != expectedAssignments.length)
       throw const ApiError(
         409,
         'Состав назначений изменился',
@@ -152,17 +175,6 @@ class ReportCommands {
         422,
         'Пустой отчёт нельзя отправить',
         code: 'empty_report',
-      );
-    final existing = await store.list(
-      'teaching_reports',
-      filter: 'teacher = {:teacher} && year = {:year} && month = {:month}',
-      params: {'teacher': actor.id, 'year': year, 'month': month},
-    );
-    if (existing.length == 1 && existing.single.data['status'] != 'draft')
-      throw const ApiError(
-        409,
-        'Статус отчёта изменился',
-        code: 'status_conflict',
       );
     await store.writeReport({
       'teacher': actor.id,

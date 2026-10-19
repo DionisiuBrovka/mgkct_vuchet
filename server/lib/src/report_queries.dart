@@ -283,14 +283,20 @@ class ReportQueries {
             'hours': Decimal.parse(row.data['hours']).toString(),
           });
         }
-      } else if (actor.role == 'teacher') {
+      }
+      if (actor.role == 'teacher' &&
+          (header == null || header.data['status'] == 'draft')) {
         final assignments = await store.list(
           'assignments',
-          filter: 'teacher = {:teacher} && academic_year = {:year}',
+          filter:
+              'teacher = {:teacher} && academic_year = {:year} && is_archived = false',
           params: {'teacher': teacher, 'year': academicYear(year, month)},
           expand: 'subject,group',
         );
         for (final row in assignments) {
+          if (entries.any((entry) => entry['assignment']['id'] == row.id)) {
+            continue;
+          }
           final subject = await store.get(
             'subjects',
             row.data['subject'] as String,

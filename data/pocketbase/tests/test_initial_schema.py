@@ -57,7 +57,7 @@ class InitialSchemaTest(unittest.TestCase):
                 self.assertEqual(db.execute("SELECT name FROM groups WHERE id = ?",
                                             ("testgroup000001",)).fetchone(), ("ПР-1",))
             fields = {field["name"] for field in self.schema(directory)["assignments"][0]}
-            self.assertTrue({"planned_main_hours", "planned_additional_hours"} <= fields)
+            self.assertTrue({"planned_main_hours", "planned_additional_hours", "is_archived"} <= fields)
 
     def test_fields_indexes_and_direct_access_match_contract(self):
         with tempfile.TemporaryDirectory(prefix="mgkct-schema-") as temp:
@@ -71,6 +71,7 @@ class InitialSchemaTest(unittest.TestCase):
         for name in ["planned_main_hours", "planned_additional_hours"]:
             self.assertEqual(fields["assignments"][name]["type"], "text")
             self.assertFalse(fields["assignments"][name]["required"])
+        self.assertEqual(fields["assignments"]["is_archived"]["type"], "bool")
         expected_indexes = {"subjects": "uq_subject_normalized_name", "groups": "uq_group_normalized_name", "assignments": "uq_assignment", "teaching_reports": "uq_report_period", "teaching_report_entries": "uq_report_assignment", "app_sessions": "uq_session_token_hash"}
         for collection, index in expected_indexes.items():
             self.assertTrue(any(index in value for value in schema[collection][1]))

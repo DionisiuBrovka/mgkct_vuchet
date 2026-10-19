@@ -891,4 +891,140 @@ void main() {
       expect(excel.bodyBytes.take(2), [80, 75]);
     },
   );
+  test(
+    'archived assignment leaves historical reports and new reports separate',
+    () async {
+      Future<RecordModel> teacher(String email, String name) => data
+          .collection('users')
+          .create(
+            body: {
+              'email': email,
+              'password': password,
+              'passwordConfirm': password,
+              'name': name,
+              'role': 'teacher',
+              'is_active': true,
+              'auth_version': 1,
+            },
+          );
+      final oldTeacher = await teacher(
+        'archive-old@example.invalid',
+        'Старый преподаватель',
+      );
+      final newTeacher = await teacher(
+        'archive-new@example.invalid',
+        'Новый преподаватель',
+      );
+      final source = await data.collection('assignments').getOne(assignmentId);
+      final old = await data
+          .collection('assignments')
+          .create(
+            body: {
+              'teacher': oldTeacher.id,
+              'subject': source.data['subject'],
+              'group': source.data['group'],
+              'academic_year': 2026,
+              'planned_main_hours': '10',
+            },
+          );
+      await data
+          .collection('assignments')
+          .update(old.id, body: {'teacher': newTeacher.id});
+      await data
+          .collection('assignments')
+          .update(old.id, body: {'teacher': oldTeacher.id});
+      final report = await data
+          .collection('teaching_reports')
+          .create(
+            body: {
+              'teacher': oldTeacher.id,
+              'year': 2026,
+              'month': 9,
+              'status': 'confirmed',
+              'revision': 1,
+            },
+          );
+      await data
+          .collection('teaching_report_entries')
+          .create(
+            body: {
+              'report': report.id,
+              'assignment': old.id,
+              'lecture_hours': '2',
+              'practical_hours': '0',
+              'course_project_hours': '0',
+              'consultation_hours': '0',
+              'additional_assessment_hours': '0',
+              'exam_hours': '0',
+            },
+          );
+      await data
+          .collection('assignments')
+          .update(
+            old.id,
+            body: {'planned_main_hours': '12', 'is_archived': true},
+          );
+      await expectLater(
+        data
+            .collection('assignments')
+            .update(old.id, body: {'teacher': newTeacher.id}),
+        throwsA(isA<ClientException>()),
+      );
+      final replacement = await data
+          .collection('assignments')
+          .create(
+            body: {
+              'teacher': newTeacher.id,
+              'subject': source.data['subject'],
+              'group': source.data['group'],
+              'academic_year': 2026,
+              'planned_main_hours': '12',
+            },
+          );
+      Future<String> login(String id) async => session(
+        await request(
+          'POST',
+          '/api/auth/login',
+          body: {'userId': id, 'password': password},
+        ),
+      );
+      final oldCookie = await login(oldTeacher.id);
+      final newCookie = await login(newTeacher.id);
+      final adminCookie = await login(adminId);
+      final oldNewReport =
+          jsonDecode(
+                (await request(
+                  'GET',
+                  '/api/reports/${oldTeacher.id}/2026/10',
+                  cookie: oldCookie,
+                )).body,
+              )
+              as Map<String, dynamic>;
+      expect(oldNewReport['entries'], isEmpty);
+      final newReport =
+          jsonDecode(
+                (await request(
+                  'GET',
+                  '/api/reports/${newTeacher.id}/2026/10',
+                  cookie: newCookie,
+                )).body,
+              )
+              as Map<String, dynamic>;
+      expect(newReport['entries'][0]['assignment']['id'], replacement.id);
+      final historical =
+          jsonDecode(
+                (await request(
+                  'GET',
+                  '/api/reports/${oldTeacher.id}/2026/9',
+                  cookie: adminCookie,
+                )).body,
+              )
+              as Map<String, dynamic>;
+      expect(historical['entries'][0]['assignment']['id'], old.id);
+      expect(
+        historical['entries'][0]['assignment']['progress']['main']['planned'],
+        '12',
+      );
+    },
+  );
 }

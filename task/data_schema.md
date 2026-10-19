@@ -73,6 +73,7 @@ assignment. Используемый subject/group неизменяем: для 
 | `academic_year` | required integer Number, `2000..2100`; год начала учебного года |
 | `planned_main_hours` | optional Text, canonical nonnegative decimal string; пусто = план не задан |
 | `planned_additional_hours` | optional Text, canonical nonnegative decimal string; пусто = план не задан |
+| `is_archived` | Bool, default `false`; закрытое назначение не добавляется в новые отчёты |
 
 Unique index `uq_assignment(teacher, subject, group, academic_year)` исключает
 дубль четверки. Hook проверяет, что `teacher.role == teacher`. Когда assignment
@@ -82,6 +83,11 @@ Unique index `uq_assignment(teacher, subject, group, academic_year)` исклю�
 а не часть сохранённого месячного отчёта. Новая миграция
 `1791000000000_assignment_plans.js` добавляет поля без изменения старых данных
 и применённой baseline-миграции.
+Миграция `1792000000000_assignment_archive.js` добавляет `is_archived`, а
+`1793000000000_protect_used_references.js` — ограничения базы для используемых
+назначений и справочников. Исправление
+преподавателя/предмета/группы у уже использованного назначения выполняется
+созданием нового назначения и закрытием старого; старые отчёты сохраняются.
 
 ### `teaching_reports`
 

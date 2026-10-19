@@ -29,6 +29,7 @@ void main() {
               'additional': {
                 ...category,
                 'planned': null,
+                'confirmed': '7.25',
                 'remaining': null,
                 'excess': null,
               },
@@ -40,6 +41,7 @@ void main() {
           'additional': {
             ...category,
             'planned': '0',
+            'confirmed': '7.25',
             'remaining': '0',
             'excess': '0',
             'missingPlans': 1,
@@ -51,15 +53,34 @@ void main() {
       final sheet = utf8.decode(
         archive.findFile('xl/worksheets/sheet1.xml')!.content,
       );
+      final additionalSheet = utf8.decode(
+        archive.findFile('xl/worksheets/sheet2.xml')!.content,
+      );
+      final workbook = utf8.decode(
+        archive.findFile('xl/workbook.xml')!.content,
+      );
+      final relationships = utf8.decode(
+        archive.findFile('xl/_rels/workbook.xml.rels')!.content,
+      );
+      expect(workbook, contains('name="Основные часы"'));
+      expect(workbook, contains('name="Дополнительные часы"'));
+      expect(relationships, contains('Target="worksheets/sheet2.xml"'));
+      expect(sheet, isNot(contains('7.25')));
+      expect(additionalSheet, contains('<v>7.25</v>'));
+      expect(additionalSheet, isNot(contains('0.300000000000000000001')));
       expect(sheet, contains('0.300000000000000000001'));
       expect(sheet, contains('0.0000000000000001'));
       expect(sheet, contains('<v>0</v>'));
-      expect(sheet, contains('Не задано'));
+      expect(additionalSheet, contains('Не задано'));
       expect(sheet, contains('Математика &amp; логика'));
       expect(sheet, contains('=SUM(A1:A2)'));
       expect(sheet, isNot(contains('<f>')));
       expect(sheet, contains('autoFilter'));
       expect(sheet, contains('state="frozen"'));
+      expect(additionalSheet, contains('autoFilter'));
+      expect(additionalSheet, contains('state="frozen"'));
+      expect(additionalSheet, contains('Без плана: 1'));
+      expect(additionalSheet, contains('Итого'));
       expect(archive.findFile('[Content_Types].xml'), isNotNull);
       final target = Platform.environment['STATISTICS_TEST_XLSX'];
       if (target != null) File(target).writeAsBytesSync(bytes);
